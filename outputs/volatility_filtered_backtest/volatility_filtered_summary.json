@@ -1,0 +1,26 @@
+[
+  {
+    "candidate_entry_dates":33,
+    "selected_entry_dates":11,
+    "regime_filter_applied":"True",
+    "number_of_trades":11,
+    "final_capital":100298.4117103545,
+    "total_pnl":298.4117103545,
+    "total_return_on_initial_capital":0.0029841171,
+    "win_rate":0.3636363636,
+    "average_trade_pnl":27.128337305,
+    "median_trade_pnl":-187.0872223499,
+    "max_trade_drawdown":-1297.489955828,
+    "portfolio_max_drawdown":-3207.284933444,
+    "portfolio_max_drawdown_pct":-0.0320579028,
+    "average_hedge_trades_per_option_trade":14.8181818182,
+    "total_hedge_turnover":1511071.9573059082,
+    "total_hedge_costs":168.4521957306,
+    "average_hedge_turnover_ratio":61.2909411986,
+    "mean_trade_return":-0.0051815029,
+    "trade_return_volatility":0.4654521069,
+    "sharpe_like_ratio":-0.0369213091,
+    "var":0.3639354836,
+    "expected_shortfall":0.3809393469
+  }
+]

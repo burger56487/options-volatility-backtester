@@ -7,6 +7,11 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+from src.backtest.volatility_filter import (
+    VolatilityRegimeFilter,
+    filter_entry_dates,
+)
+
 
 from src.backtest.long_straddle_backtest import (
     LongStraddleBacktestConfig,
@@ -180,6 +185,7 @@ def run_rolling_long_straddle_backtest(
     surface_parameters: VolatilitySurfaceParameters = (
         VolatilitySurfaceParameters()
     ),
+    regime_filter: VolatilityRegimeFilter | None = None,
 ) -> RollingBacktestResult:
     """
     Run a sequence of non-overlapping delta-hedged long-straddle backtests.
@@ -202,13 +208,36 @@ def run_rolling_long_straddle_backtest(
         ),
         days_to_expiry=trade_config.days_to_expiry,
     )
+    candidate_entry_dates = entry_dates.copy()
+
 
     if not entry_dates:
         raise ValueError(
             "Insufficient data for rolling backtest."
         )
+        candidate_entry_dates = entry_dates
+
+    if regime_filter is not None:
+        filter_results = filter_entry_dates(
+            price_data=data,
+            candidate_dates=candidate_entry_dates,
+            regime_filter=regime_filter,
+        )
+
+        entry_dates = [
+            pd.Timestamp(date)
+            for date in filter_results.index[
+                filter_results["selected"]
+            ]
+        ]
+
+    if not entry_dates:
+        raise ValueError(
+            "No entry dates passed the volatility-regime filter."
+        )
 
     records: list[dict[str, float | int | str]] = []
+
     capital = rolling_config.initial_capital
 
     for entry_date in entry_dates:
@@ -308,8 +337,11 @@ def run_rolling_long_straddle_backtest(
     )
 
     summary: dict[str, float | int | str] = {
+        "candidate_entry_dates": int(len(candidate_entry_dates)),
+        "selected_entry_dates": int(len(entry_dates)),
+        "regime_filter_applied": str(regime_filter is not None),
         "number_of_trades": int(len(trade_results)),
-        "initial_capital": rolling_config.initial_capital,
+
         "final_capital": float(
             equity_curve["equity"].iloc[-1]
         ),
