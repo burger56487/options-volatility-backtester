@@ -1,0 +1,18 @@
+[
+  {
+    "entry_date":"2025-03-03",
+    "expiry_date":"2025-04-02",
+    "entry_spot":573.944152832,
+    "strike":573.94,
+    "entry_cost":2161.1397831669,
+    "final_spot":556.6877441406,
+    "final_pnl":566.9344787105,
+    "max_drawdown":-283.9292176317,
+    "number_of_hedge_trades":22,
+    "cumulative_hedge_turnover":239732.8776245117,
+    "cumulative_hedge_costs":26.1232877625,
+    "hedge_turnover_ratio":110.9289086674,
+    "final_option_value":1725.2255859375,
+    "final_hedge_equity":1002.8486759399
+  }
+]
