@@ -65,26 +65,41 @@ def main() -> None:
         else:
             print(f"{key}: {value}")
 
-    print()
+        print()
     print("Trade results")
     print("-" * 72)
-    print(
-        result.trade_results[
-            [
-                "entry_date",
-                "expiry_date",
-                "entry_spot",
-                "final_spot",
-                "final_pnl",
-                "trade_return",
-                "max_drawdown",
-                "number_of_hedge_trades",
-                "cumulative_hedge_costs",
-            ]
-        ]
-        .round(4)
-        .to_string(index=False)
+
+    display_columns = [
+        "entry_date",
+        "expiry_date",
+        "entry_spot",
+        "final_spot",
+        "final_pnl",
+        "trade_return",
+        "max_drawdown",
+        "number_of_hedge_trades",
+        "cumulative_hedge_costs",
+    ]
+
+    display_results = result.trade_results[
+        display_columns
+    ].copy()
+
+    numeric_columns = [
+        "entry_spot",
+        "final_spot",
+        "final_pnl",
+        "trade_return",
+        "max_drawdown",
+        "cumulative_hedge_costs",
+    ]
+
+    display_results[numeric_columns] = (
+        display_results[numeric_columns].round(4)
     )
+
+    print(display_results.to_string(index=False))
+
 
     figure_directory.mkdir(parents=True, exist_ok=True)
 
