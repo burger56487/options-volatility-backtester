@@ -20,7 +20,10 @@ from src.backtest.rolling_backtest import (
 )
 from src.config import load_config
 from src.manifest import create_manifest
-from src.market_data.underlying_data import load_price_data
+from src.market_data.pipeline import (
+    run_market_data_pipeline,
+    underlying_clean_to_price_frame,
+)
 from src.plotting import build_research_subtitle
 from src.research_guardrails import validate_research_claims
 from src.run_context import initialise_run
@@ -58,7 +61,37 @@ def main() -> None:
         command=" ".join(sys.argv),
     )
 
-    data = load_price_data(Path(args.price_data))
+    legacy = pd.read_csv(args.price_data)
+    legacy["Date"] = pd.to_datetime(legacy["Date"]).dt.date
+    unified_path = Path("data/raw/underlying/underlying.csv")
+    unified_path.parent.mkdir(parents=True, exist_ok=True)
+    pd.DataFrame(
+        {
+            "date": legacy["Date"],
+            "symbol": "SPY",
+            "open": legacy["Open"],
+            "high": legacy["High"],
+            "low": legacy["Low"],
+            "close": legacy["Close"],
+            "adjusted_close": legacy["Close"],
+            "volume": legacy["Volume"],
+        }
+    ).to_csv(unified_path, index=False)
+    data_quality = config.get("data_quality", {})
+    market_data_dir = context.output_directory / "market_data"
+    run_market_data_pipeline(
+        underlying_input_path=unified_path,
+        option_input_path=Path(
+            "data/sample/option_quotes_sample.csv"
+        ),
+        output_directory=market_data_dir,
+        run_id=context.run_id,
+        underlying_source=config["data"]["underlying"]["source"],
+        fail_on_invalid=data_quality.get("fail_on_invalid", True),
+    )
+    data = underlying_clean_to_price_frame(
+        market_data_dir / "underlying_clean.csv"
+    )
     trade_config = LongStraddleBacktestConfig(
         days_to_expiry=30,
         quantity=1,

@@ -49,6 +49,7 @@ class ExecutionEngine:
         account: Account | None = None,
         available_quantity: float | None = None,
         multiplier: float = 1.0,
+        latency_seconds: float = 0.0,
     ) -> ExecutionResult:
         if snapshot.is_stale(self.parameters.max_quote_age_seconds):
             order.status = OrderStatus.REJECTED
@@ -103,11 +104,17 @@ class ExecutionEngine:
             multiplier=multiplier,
             schedule=self.commission_schedule,
         )
+        import datetime
+
+        fill_timestamp = (
+            snapshot.timestamp
+            + datetime.timedelta(seconds=latency_seconds)
+        )
         fill = make_fill(
             order=order,
             run_id=self.run_id,
             fill_id=self._next_fill_id(),
-            timestamp=snapshot.timestamp,
+            timestamp=fill_timestamp,
             quantity=max_fill,
             multiplier=multiplier,
             snapshot=snapshot,

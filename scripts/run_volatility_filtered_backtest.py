@@ -142,9 +142,8 @@ def main() -> None:
         label="Volatility Filtered",
     )
 
-    plt.title(
-        "Baseline vs Volatility-Filtered Long Straddle"
-    )
+    plt.title("Baseline vs Volatility-Filtered Long Straddle")
+    plt.suptitle("Synthetic option quotes | simulated execution", fontsize=9)
     plt.xlabel("Trade Entry Date")
     plt.ylabel("Illustrative Capital")
     plt.grid(alpha=0.25)

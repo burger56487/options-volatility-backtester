@@ -30,6 +30,25 @@ def records_to_dataframe(records: list) -> pd.DataFrame:
     return pd.DataFrame([record.to_dict() for record in records])
 
 
+def underlying_clean_to_price_frame(
+    clean_csv_path: str | Path,
+) -> pd.DataFrame:
+    """Load pipeline-cleaned underlying bars as a Close-indexed frame."""
+    frame = pd.read_csv(clean_csv_path)
+    required = {"trade_date", "adjusted_close"}
+    missing = required - set(frame.columns)
+    if missing:
+        raise ValueError(
+            f"Clean underlying file missing columns: {sorted(missing)}"
+        )
+    result = pd.DataFrame(
+        {"Close": frame["adjusted_close"].astype(float)}
+    )
+    result.index = pd.to_datetime(frame["trade_date"])
+    result.index.name = None
+    return result.sort_index()
+
+
 def validation_issues_to_dataframe(
     records: list,
     results: list[ValidationResult],

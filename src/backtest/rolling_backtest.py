@@ -269,6 +269,12 @@ def run_rolling_long_straddle_backtest(
             {
                 "entry_date": str(summary["entry_date"]),
                 "expiry_date": str(summary["expiry_date"]),
+                "observation_end_date": str(
+                    (pd.Timestamp(summary["entry_date"]) - pd.Timedelta(days=1)).date()
+                ),
+                "signal_date": str(summary["entry_date"]),
+                "fill_date": str(summary["entry_date"]),
+                "exit_date": str(summary["expiry_date"]),
                 "entry_spot": float(summary["entry_spot"]),
                 "final_spot": float(summary["final_spot"]),
                 "strike": float(summary["strike"]),

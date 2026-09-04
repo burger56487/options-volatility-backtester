@@ -112,6 +112,7 @@ def main() -> None:
         label="Illustrative Equity",
     )
     plt.title("Rolling Delta-Hedged Long Straddle Equity Curve")
+    plt.suptitle("Synthetic option quotes | simulated execution", fontsize=9)
     plt.xlabel("Trade Entry Date")
     plt.ylabel("Capital")
     plt.grid(alpha=0.25)
@@ -137,6 +138,7 @@ def main() -> None:
     )
     plt.axhline(0.0, color="black", linewidth=0.8)
     plt.title("Rolling Long Straddle P&L by Trade")
+    plt.suptitle("Synthetic option quotes | simulated execution", fontsize=9)
     plt.xlabel("Entry Date")
     plt.ylabel("Final P&L")
     plt.xticks(rotation=45, ha="right")

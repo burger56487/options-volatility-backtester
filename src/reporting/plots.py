@@ -116,3 +116,37 @@ def plot_greeks_vs_limits(
     figure.savefig(path, dpi=160)
     plt.close(figure)
     return path
+
+
+def plot_parameter_stability_heatmap(
+    frame: pd.DataFrame,
+    x_column: str,
+    y_column: str,
+    value_column: str,
+    output_path: str | Path,
+) -> Path:
+    """Heatmap of a metric across two parameter dimensions."""
+    path = Path(output_path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    pivot = frame.pivot_table(
+        index=y_column,
+        columns=x_column,
+        values=value_column,
+        aggfunc="mean",
+    )
+    figure, axis = plt.subplots(figsize=(10, 6))
+    image = axis.imshow(
+        pivot.values,
+        aspect="auto",
+        cmap="viridis",
+    )
+    axis.set_xticks(range(len(pivot.columns)))
+    axis.set_xticklabels(pivot.columns)
+    axis.set_yticks(range(len(pivot.index)))
+    axis.set_yticklabels(pivot.index)
+    figure.colorbar(image, ax=axis, label=value_column)
+    figure.suptitle("Parameter stability")
+    figure.tight_layout()
+    figure.savefig(path, dpi=160)
+    plt.close(figure)
+    return path
