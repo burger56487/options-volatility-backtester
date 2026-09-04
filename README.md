@@ -113,6 +113,7 @@ docker compose --profile postgres up --build           # + PostgreSQL
 | [高性能计算](docs/high_performance.md) | C++ 内核、构建、基准 |
 | [数据平台](docs/platform.md) | 存储、API、看板、Docker |
 | [测试与 CI](docs/testing.md) | 测试分层、覆盖率、流水线 |
+| [展示材料](showcase/) | 一页纸摘要（PDF）+ 5 分钟演示脚本 |
 
 ## 局限性与研究定位
 
