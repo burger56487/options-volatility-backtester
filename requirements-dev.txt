@@ -1,0 +1,6 @@
+# Test/CI dependencies: full runtime plus API extras and test tooling.
+-r requirements.txt
+-r requirements-api.txt
+
+hypothesis==6.167.1
+pytest-cov==7.1.0

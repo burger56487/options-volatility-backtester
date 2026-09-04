@@ -10,6 +10,26 @@ on:
   workflow_dispatch:
 
 jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install lint tools
+        run: python -m pip install ruff==0.16.1 mypy==2.3.1
+
+      - name: Ruff error-level checks
+        run: python -m ruff check src tests --output-format concise
+
+      - name: Type check validation module
+        run: python -m mypy --ignore-missing-imports --follow-imports=skip src/validation
+
   test:
     runs-on: ubuntu-latest
 
@@ -26,12 +46,17 @@ jobs:
         run: python -m pip install --upgrade pip
 
       - name: Install dependencies
-        run: python -m pip install -r requirements.txt
+        run: python -m pip install -r requirements-dev.txt
 
-      - name: Run tests
+      - name: Run tests with coverage
         env:
           PYTHONPATH: .
-        run: python -m pytest -q -m "not perf"
+        run: >
+          python -m pytest -q -m "not perf"
+          --cov=src
+          --cov-report=term-missing
+          --cov-report=xml:coverage.xml
+          --cov-report=html:htmlcov
 
       - name: Generate model validation report
         env:
@@ -45,6 +70,15 @@ jobs:
           path: outputs/testing/
           if-no-files-found: error
 
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: |
+            htmlcov
+            coverage.xml
+          if-no-files-found: error
+
       - name: Build C++ backend
         run: |
           g++ -shared -O2 -w -std=c++17 -pthread cpp/src/bs_kernels.cpp -o outputs/bs_kernels.so
@@ -53,6 +87,3 @@ jobs:
         env:
           PYTHONPATH: .
         run: python -m pytest -q tests/pricing/test_cpp_backend.py -m cpp
-
-      - name: Ruff error-level checks
-        run: python -m ruff check src tests --output-format concise
