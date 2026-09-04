@@ -29,6 +29,8 @@ def test_flat_market_account_hedge_reconciles():
     assert result["total_pnl"] < 0.0  # premium + costs with no market move
     assert not result["snapshots"].empty
     assert not result["fills"].empty
+    assert "margin_used" in result["snapshots"].columns
+    assert (result["snapshots"]["margin_used"] >= 0).all()
 
 
 def test_save_account_hedge_result_writes_files(tmp_path):

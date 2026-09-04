@@ -36,6 +36,8 @@ class AccountSnapshot:
     fees_paid: float
     financing_paid: float
     borrow_fees_paid: float
+    margin_used: float = 0.0
+    available_capital: float = 0.0
 
     def to_dict(self) -> dict:
         output = asdict(self)
@@ -46,6 +48,7 @@ class AccountSnapshot:
 def create_account_snapshot(
     account: Account,
     market: MarketSnapshot,
+    margin_estimate: dict | None = None,
 ) -> AccountSnapshot:
     realised_pnl = sum(
         position.realised_pnl
@@ -56,6 +59,9 @@ def create_account_snapshot(
         for key, position in account.positions.items()
     )
     equity = account.equity(market.prices)
+    margin_used = float(
+        (margin_estimate or {}).get("initial_margin_total", 0.0)
+    )
     return AccountSnapshot(
         timestamp=market.timestamp,
         cash=account.cash,
@@ -70,4 +76,6 @@ def create_account_snapshot(
         fees_paid=account.fees_paid,
         financing_paid=account.financing_paid,
         borrow_fees_paid=account.borrow_fees_paid,
+        margin_used=margin_used,
+        available_capital=equity - margin_used,
     )

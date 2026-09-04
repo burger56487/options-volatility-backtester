@@ -21,6 +21,7 @@ from src.execution.engine import ExecutionEngine
 from src.execution.fill_model import ExecutionParameters
 from src.execution.market_snapshot import MarketSnapshot
 from src.execution.metrics import fills_to_dataframe
+from src.financing.margin import estimate_account_margin
 from src.portfolio.account import Account
 from src.portfolio.fills import Fill
 from src.portfolio.identifiers import (
@@ -231,7 +232,17 @@ def run_account_delta_hedge(
                 stock_id.key(): 0.0,
             },
         )
-        snapshots.append(create_account_snapshot(account, market))
+        snapshots.append(
+            create_account_snapshot(
+                account,
+                    market,
+                    margin_estimate=estimate_account_margin(
+                        account,
+                        market_prices=market.prices,
+                        underlying_spots={config.symbol: spot},
+                    ),
+            )
+        )
 
     # Expiry settlement and stock close-out at the final mark.
     final_spot = float(data["Close"].iloc[end_idx])
@@ -275,6 +286,11 @@ def run_account_delta_hedge(
             timestamp=trade_index[-1].to_pydatetime(),
             prices=final_prices,
             deltas={}, gammas={}, vegas={}, thetas={}, rhos={},
+        ),
+        margin_estimate=estimate_account_margin(
+            account,
+            market_prices=final_prices,
+            underlying_spots={config.symbol: final_spot},
         ),
     )
     reconciliation = reconcile_pnl_bridge(
@@ -487,6 +503,11 @@ def run_account_straddle_backtest(
                     vegas=vegas,
                     thetas=thetas,
                     rhos=rhos,
+                ),
+                margin_estimate=estimate_account_margin(
+                    account,
+                    market_prices=prices,
+                    underlying_spots={config.symbol: spot},
                 ),
             )
         )
