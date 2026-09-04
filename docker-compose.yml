@@ -1,0 +1,18 @@
+services:
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./outputs:/data
+    environment:
+      - APP_DB_PATH=/data/app.db
+      - DATA_ROOT=/data
+  dashboard:
+    image: python:3.12-slim
+    command: sh -c "pip install -q streamlit pandas && streamlit run /app/scripts/dashboard.py --server.port 8501"
+    ports:
+      - "8501:8501"
+    volumes:
+      - .:/app
+      - ./outputs:/data

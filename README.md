@@ -580,6 +580,22 @@ Delta, Gamma, Vega, Theta, Rho and hedge-cost contributions using the
 previous day's recorded exposures, and reports the unexplained residual.
 See `scripts/run_upgrade_demo.py` for an end-to-end example.
 
+## API 服务与部署 (API & DEPLOYMENT)
+
+`src/api/` 提供 FastAPI 服务：`GET /health`、`POST /pricing/vanilla`、
+`POST /pricing/surface`（C++ 后端可用时走批量内核）、`POST /runs`（后台线程
+任务，可轮询 `GET /runs/{id}`）。持久化默认 SQLite（`outputs/app.db`），
+Repository 抽象便于切换 Postgres。
+
+本地启动：
+
+```bash
+uvicorn src.api.run_server:application --reload
+```
+
+Docker：`docker compose up --build`（api 在 8000，Streamlit 看板在 8501）。
+看板逻辑在 `scripts/dashboard.py`，UI 需在本地/容器运行验证。
+
 head -30 README.md
 tail -20 README.md
 
