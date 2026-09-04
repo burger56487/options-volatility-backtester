@@ -90,7 +90,7 @@ docker compose --profile postgres up --build           # + PostgreSQL
 | 账户引擎滚动跨式 | 17 笔，总 PnL −8038.77，对账最大差异 3.5e-11 |
 | legacy 滚动（无过滤） | 33 笔，总 PnL −8038.86，Sharpe-like −1.74 |
 | 波动率过滤（阈值 1.30） | 6 笔，PnL +1357.48，Sharpe-like +0.32 |
-| 严格样本外（阈值 1.10） | 测试段 5 笔，PnL +1731.79，年化 Sharpe 1.28 |
+| 严格样本外（阈值 1.00） | 测试段 2 笔，PnL +2655.53，年化 Sharpe 1.42（不足 5 笔，如实标记） |
 | 真实链 SVI 校准 | 6 个到期日 RMSE 3.9e-5~1.7e-4 |
 | VaR 回测 | 87/1194 例外；Kupiec p=0.0007，Christoffersen p=0.78 |
 | C++ 加速 | 独立基准 ~40.8x；批量内核 vs Python 标量 ~3.8x |
