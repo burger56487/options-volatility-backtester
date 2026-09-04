@@ -52,3 +52,21 @@ data_quality:
   arbitrage_tolerance: 1.0e-8
   save_invalid_records: true
   save_quality_report: true
+
+evaluation:
+  scheme: fixed_time_split
+  lag_regime_signal: true
+  minimum_validation_trades: 3
+  test_set_locked: true
+  allow_test_parameter_selection: false
+
+  fixed_split:
+    train:
+      start: "2021-01-01"
+      end: "2023-12-31"
+    validation:
+      start: "2024-01-01"
+      end: "2024-12-31"
+    test:
+      start: "2025-01-01"
+      end: "2025-12-31"

@@ -11,6 +11,7 @@ from src.backtest.volatility_filter import (
     VolatilityRegimeFilter,
     filter_entry_dates,
 )
+from src.backtest.timeline import filter_entry_dates_lagged
 
 
 from src.backtest.long_straddle_backtest import (
@@ -188,6 +189,7 @@ def run_rolling_long_straddle_backtest(
         VolatilitySurfaceParameters()
     ),
     regime_filter: VolatilityRegimeFilter | None = None,
+    lag_regime_signal: bool = False,
 ) -> RollingBacktestResult:
     """
     Run a sequence of non-overlapping delta-hedged long-straddle backtests.
@@ -220,7 +222,12 @@ def run_rolling_long_straddle_backtest(
         candidate_entry_dates = entry_dates
 
     if regime_filter is not None:
-        filter_results = filter_entry_dates(
+        filter_function = (
+            filter_entry_dates_lagged
+            if lag_regime_signal
+            else filter_entry_dates
+        )
+        filter_results = filter_function(
             price_data=data,
             candidate_dates=candidate_entry_dates,
             regime_filter=regime_filter,
@@ -359,6 +366,7 @@ def run_rolling_long_straddle_backtest(
         "candidate_entry_dates": int(len(candidate_entry_dates)),
         "selected_entry_dates": int(len(entry_dates)),
         "regime_filter_applied": str(regime_filter is not None),
+        "regime_signal_lagged": str(lag_regime_signal),
         "number_of_trades": int(len(trade_results)),
 
         "final_capital": float(

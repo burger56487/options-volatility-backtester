@@ -475,6 +475,26 @@ or sell securities, or a recommendation to use any trading strategy.
 合约，当前欧式边界用于合成链（欧式 Black-Scholes 框架）；接入真实美式期权时
 需增加 `exercise_style` 处理与提前行权规则。
 
+## 时间序列验证与前视偏差控制 (TIME-SERIES VALIDATION)
+
+项目采用严格的信息时点约定：第 t 日的策略信号仅使用截至第 t-1 日收盘时可获得
+的数据，并在第 t 日的模拟可执行报价上成交。`src/features/` 生成的所有波动率
+特征在观测后滞后一个交易日，并附带 JSON sidecar 声明可用时间规则；审计模块会
+拒绝"观测截止不早于信号日"的特征表。`src/backtest/timeline.py` 提供滞后一日的
+波动率过滤信号与三区段切分。
+
+模型和策略参数仅使用训练集与验证集选择（`src/evaluation/model_selection.py`
+使用带小样本/回撤/换手惩罚的综合评分），独立测试集只用于最终评价并被
+`evaluation/test_evaluation_log.json` 锁定——重复评估必须显式说明原因。
+`scripts/run_strict_evaluation.py` 运行完整流程并输出：
+
+- `parameter_selection.csv`、`selected_parameters.json`；
+- `train/validation/test_metrics.json`（三个区间分别报告）；
+- `trade_log.csv`（每笔交易带 `split_name`）与
+  `boundary_crossing_trades.csv`（跨越 train/validation 边界被剔除的交易，
+  保留审计痕迹）；
+- `split_summary.csv` 与 `test_evaluation_record.json`。
+
 ## STATISTICAL VALIDATION AND P&L ATTRIBUTION
 
 The rolling backtest summary now reports:
