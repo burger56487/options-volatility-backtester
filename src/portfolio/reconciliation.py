@@ -52,15 +52,11 @@ def reconcile_pnl_bridge(
     borrow_fees = ledger_type_total(
         account, CashFlowType.BORROW_FEE
     )
-    settlement = ledger_type_total(
-        account, CashFlowType.OPTION_SETTLEMENT
-    )
     bridge_pnl = (
         realised
         + unrealised
         + financing
         + borrow_fees
-        + settlement
         - account.fees_paid
     )
     difference = total_pnl - bridge_pnl

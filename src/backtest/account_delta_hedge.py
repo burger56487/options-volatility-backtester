@@ -11,6 +11,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
+from pathlib import Path
 
 import pandas as pd
 
@@ -19,6 +20,7 @@ from src.execution.commission import CommissionSchedule
 from src.execution.engine import ExecutionEngine
 from src.execution.fill_model import ExecutionParameters
 from src.execution.market_snapshot import MarketSnapshot
+from src.execution.metrics import fills_to_dataframe
 from src.portfolio.account import Account
 from src.portfolio.fills import Fill
 from src.portfolio.identifiers import (
@@ -27,6 +29,8 @@ from src.portfolio.identifiers import (
 )
 from src.portfolio.orders import Order, Side
 from src.portfolio.reconciliation import reconcile_pnl_bridge
+from src.portfolio.reconciliation import ledger_type_total
+from src.portfolio.cash_ledger import CashFlowType
 from src.portfolio.valuation import (
     AccountSnapshot,
     MarketSnapshot as PricingMarketSnapshot,
@@ -124,6 +128,7 @@ def run_account_delta_hedge(
         return result
 
     snapshots = []
+    fills = []
     entry_done = False
     for position, (timestamp, row) in enumerate(
         zip(trade_index, data.loc[trade_index].itertuples())
@@ -150,6 +155,7 @@ def run_account_delta_hedge(
                 * config.option_quantity,
             )
             account.apply_fill(option_fill)
+            fills.append(option_fill)
             entry_done = True
 
         option_delta = greeks.delta * config.option_quantity * config.multiplier
@@ -178,7 +184,8 @@ def run_account_delta_hedge(
                 orderbook_mode="mid_only",
                 quote_age_seconds=0.0,
             )
-            engine.execute(order, snapshot, account=account)
+            execution = engine.execute(order, snapshot, account=account)
+            fills.extend(execution.fills)
 
         option_price = premium(spot, remaining).price
         account.accrue_financing(
@@ -234,7 +241,7 @@ def run_account_delta_hedge(
             side=side,
             quantity=abs(stock_position.quantity),
         )
-        engine.execute(
+        execution = engine.execute(
             close_order,
             MarketSnapshot(
                 timestamp=trade_index[-1].to_pydatetime(),
@@ -247,6 +254,7 @@ def run_account_delta_hedge(
             ),
             account=account,
         )
+        fills.extend(execution.fills)
     final_prices = {
         option_id.key(): max(final_spot - strike, 0.0),
         stock_id.key(): final_spot,
@@ -268,7 +276,69 @@ def run_account_delta_hedge(
         "total_pnl": float(final_snapshot.equity - account.initial_capital),
         "reconciliation_passed": bool(reconciliation.passed),
         "reconciliation_difference": float(reconciliation.difference),
+        "bridge_debug": {
+            "cash": float(account.cash),
+            "realised_pnl": float(
+                sum(p.realised_pnl for p in account.positions.values())
+            ),
+            "unrealised_pnl": float(
+                sum(
+                    p.unrealised_pnl(final_prices[key])
+                    for key, p in account.positions.items()
+                    if key in final_prices
+                )
+            ),
+            "interest": float(
+                ledger_type_total(account, CashFlowType.INTEREST)
+            ),
+            "financing": float(
+                ledger_type_total(account, CashFlowType.FINANCING)
+            ),
+            "borrow_fees": float(
+                ledger_type_total(account, CashFlowType.BORROW_FEE)
+            ),
+            "settlement": float(
+                ledger_type_total(
+                    account, CashFlowType.OPTION_SETTLEMENT
+                )
+            ),
+            "fees_paid": float(account.fees_paid),
+        },
         "snapshots": pd.DataFrame(
             [snapshot.to_dict() for snapshot in snapshots]
         ),
+        "fills": fills_to_dataframe(fills),
     }
+
+
+def save_account_hedge_result(
+    result: dict,
+    output_directory: str | Path,
+) -> Path:
+    """Write snapshots, fills and a small summary for an account hedge run."""
+    output_path = Path(output_directory)
+    output_path.mkdir(parents=True, exist_ok=True)
+    result["snapshots"].to_csv(
+        output_path / "account_snapshots.csv",
+        index=False,
+    )
+    result["fills"].to_csv(
+        output_path / "fills.csv",
+        index=False,
+    )
+    summary = {
+        "final_equity": result["final_equity"],
+        "total_pnl": result["total_pnl"],
+        "reconciliation_passed": result["reconciliation_passed"],
+        "reconciliation_difference": result[
+            "reconciliation_difference"
+        ],
+    }
+    import json
+
+    with (output_path / "summary.json").open(
+        "w",
+        encoding="utf-8",
+    ) as file:
+        json.dump(summary, file, ensure_ascii=False, indent=2)
+    return output_path
