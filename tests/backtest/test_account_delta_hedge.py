@@ -7,6 +7,10 @@ from src.backtest.account_delta_hedge import (
     run_account_straddle_backtest,
     save_account_hedge_result,
 )
+from src.reporting.plots import (
+    plot_cost_breakdown,
+    plot_equity_and_drawdown,
+)
 
 
 def _flat_prices(periods: int = 40) -> pd.DataFrame:
@@ -86,3 +90,22 @@ def test_rolling_account_straddle_all_trades_reconcile():
     assert result["summary"]["reconciliation_failures"] == 0
     assert result["summary"]["max_abs_reconciliation_difference"] < 1e-6
     assert not result["equity_curve"].empty
+
+
+def test_reporting_plots_save_files(tmp_path):
+    data = _random_walk(periods=120)
+    result = run_account_straddle_backtest(
+        price_data=data,
+        entry_date=data.index[0],
+        config=AccountHedgeConfig(expiry_days=5),
+    )
+    equity_path = plot_equity_and_drawdown(
+        result["snapshots"],
+        tmp_path / "equity.png",
+    )
+    cost_path = plot_cost_breakdown(
+        result["fills"],
+        tmp_path / "costs.png",
+    )
+    assert equity_path.exists()
+    assert cost_path.exists()
