@@ -70,3 +70,37 @@ evaluation:
     test:
       start: "2025-01-01"
       end: "2025-12-31"
+
+account:
+  base_currency: USD
+  initial_capital: 1000000
+  allow_negative_cash: true
+  minimum_cash_buffer: 10000
+
+position_sizing:
+  method: fixed_premium_budget
+  premium_budget_fraction: 0.02
+  fixed_contracts: 1
+  vega_budget: 5000
+  gamma_budget: 100
+
+financing:
+  annual_cash_lending_rate: 0.03
+  annual_cash_borrowing_rate: 0.06
+  annual_stock_borrow_fee_rate: 0.01
+  day_count_basis: 365
+
+margin:
+  methodology: simplified_research_model
+  enforce_initial_margin: true
+  enforce_maintenance_margin: true
+
+risk_limits:
+  max_gross_exposure: 1500000
+  max_leverage: 2.0
+  max_abs_delta: 10000
+  max_abs_gamma: 1000
+  max_abs_vega: 50000
+  max_daily_loss: 20000
+  max_drawdown: 0.15
+  min_cash_buffer: 10000

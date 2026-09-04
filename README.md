@@ -495,6 +495,18 @@ or sell securities, or a recommendation to use any trading strategy.
   保留审计痕迹）；
 - `split_summary.csv` 与 `test_evaluation_record.json`。
 
+## 账户、资本与风险约束 (ACCOUNT & RISK CONSTRAINTS)
+
+`src/portfolio/` 提供组合级复式现金流逻辑：订单、成交（实际成交价口径，现金只扣
+佣金；价差/滑点/冲击仅作归因字段）、头寸（加权平均成本、平仓与反转的已实现 PnL）、
+不可变现金账本、账户权益与每日快照、期权到期现金结算，以及独立的 PnL 桥对账
+（`TotalPnL ≈ Realised + Unrealised + Financing + BorrowFee + Settlement − Fees`）。
+
+`src/financing/` 提供现金存/贷利息、股票借券费和简化保证金估算；`src/risk/`
+计算组合 Greeks（per-contract 口径）并做交易前限额检查，支持对整张订单的拒绝
+与二分搜索最大可执行数量。保证金模型属于研究性近似，不代表交易所、清算机构或
+经纪商的实际规则。
+
 ## STATISTICAL VALIDATION AND P&L ATTRIBUTION
 
 The rolling backtest summary now reports:
