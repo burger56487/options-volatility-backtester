@@ -210,3 +210,49 @@ def test_heston_calibration_recovers_synthetic_parameters() -> None:
     assert abs(result.parameters["sigma_v"] - params["sigma_v"]) < 0.03
     assert abs(result.parameters["rho"] - params["rho"]) < 0.03
     assert abs(result.parameters["v0"] - params["v0"]) < 0.005
+
+
+def test_semi_analytic_stable_in_extreme_parameter_regime() -> None:
+    """Put-call parity must survive the characteristic-function trap zone:
+    long maturity, high vol-of-vol and rho close to +/-1."""
+    spot = 100.0
+    risk_free_rate = 0.03
+    dividend_yield = 0.0
+    time_to_expiry = 5.0
+    common = dict(
+        spot=spot,
+        time_to_expiry=time_to_expiry,
+        kappa=1.5,
+        theta=0.06,
+        sigma_v=0.8,
+        v0=0.05,
+        risk_free_rate=risk_free_rate,
+        dividend_yield=dividend_yield,
+        grid_points=12_000,
+    )
+    for rho in (0.95, -0.95):
+        for strike in (80.0, 180.0):
+            call = heston_price_semi_analytic(
+                **common,
+                strike=strike,
+                rho=rho,
+                option_type=OptionType.CALL,
+            )
+            put = heston_price_semi_analytic(
+                **common,
+                strike=strike,
+                rho=rho,
+                option_type=OptionType.PUT,
+            )
+            assert 0.0 < call < spot
+            assert 0.0 < put < strike
+            parity = (
+                call
+                - put
+                - (
+                    spot * math.exp(-dividend_yield * time_to_expiry)
+                    - strike
+                    * math.exp(-risk_free_rate * time_to_expiry)
+                )
+            )
+            assert abs(parity) < 1e-4

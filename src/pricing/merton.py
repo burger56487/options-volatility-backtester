@@ -32,11 +32,23 @@ def merton_series_price(
     k = _compensator(jump_mean, jump_vol)
     lam_prime = jump_intensity * (1.0 + k)
     total = 0.0
+    last_weight = 0.0
+    poisson_mean = lam_prime * time_to_expiry
     for n in range(max_terms):
         weight = math.exp(-lam_prime * time_to_expiry) * (
             (lam_prime * time_to_expiry) ** n
         ) / math.factorial(n)
-        if weight < tolerance and n > 2:
+        last_weight = weight
+        # Stop only in the right tail (n past the Poisson mean), where the
+        # probability mass is monotonically decreasing.  Before the mode the
+        # weight can be below tolerance while the bulk of the mass still lies
+        # ahead (e.g. high jump intensity), so a left-tail break would
+        # silently truncate the whole series.
+        if (
+            weight < tolerance
+            and n > 2
+            and n > poisson_mean
+        ):
             break
         rate_n = (
             risk_free_rate
@@ -56,6 +68,14 @@ def merton_series_price(
             option_type=option_type.value,
             dividend_yield=dividend_yield,
         )
+    else:
+        if last_weight >= tolerance:
+            raise ValueError(
+                "Merton series reached max_terms while the Poisson weight "
+                f"({last_weight:.3e}) is still above tolerance "
+                f"({tolerance:.1e}); increase max_terms or reduce "
+                "jump_intensity * time_to_expiry."
+            )
     return float(total)
 
 
