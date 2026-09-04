@@ -2,16 +2,12 @@
 
 from __future__ import annotations
 
-import sqlite3
-
 from src.api.app import create_app
-from src.storage.repository import SqliteRunRepository
+from src.storage.repository import connect_run_repository
 
 
 def app():
-    connection = sqlite3.connect("outputs/app.db", check_same_thread=False)
-    repository = SqliteRunRepository(connection)
-    return create_app(repository=repository)
+    return create_app(repository=connect_run_repository())
 
 
 application = app()

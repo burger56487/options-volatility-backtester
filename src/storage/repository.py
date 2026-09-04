@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import json
+import os
 import sqlite3
 from abc import ABC, abstractmethod
+from pathlib import Path
 from typing import Any
 
 from .schema import apply_migrations
@@ -146,3 +148,30 @@ class InMemoryRunRepository(RunRepository):
     def update_status(self, run_id, status):
         if run_id in self._runs:
             self._runs[run_id]["status"] = status
+
+
+def connect_run_repository() -> RunRepository:
+    """Build the repository from ``DATABASE_URL`` or ``APP_DB_PATH``.
+
+    When ``DATABASE_URL`` is set a PostgreSQL repository is used (psycopg
+    required); otherwise the default is a SQLite database under ``outputs/``.
+    """
+    database_url = os.environ.get("DATABASE_URL")
+    if database_url:
+        import psycopg
+
+        from .postgres_repository import PostgresRunRepository
+
+        return PostgresRunRepository(psycopg.connect(database_url))
+    database_path = Path(
+        os.environ.get(
+            "APP_DB_PATH",
+            str(Path("outputs") / "app.db"),
+        )
+    )
+    database_path.parent.mkdir(parents=True, exist_ok=True)
+    connection = sqlite3.connect(
+        str(database_path),
+        check_same_thread=False,
+    )
+    return SqliteRunRepository(connection)

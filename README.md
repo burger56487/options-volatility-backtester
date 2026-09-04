@@ -643,8 +643,10 @@ See `scripts/run_upgrade_demo.py` for an end-to-end example.
 
 `src/api/` 提供 FastAPI 服务：`GET /health`、`POST /pricing/vanilla`、
 `POST /pricing/surface`（C++ 后端可用时走批量内核）、`POST /runs`（后台线程
-任务，可轮询 `GET /runs/{id}`）。持久化默认 SQLite（`outputs/app.db`），
-Repository 抽象便于切换 Postgres。
+任务，可轮询 `GET /runs/{id}`）。持久化默认 SQLite（`outputs/app.db`）；
+设置 `DATABASE_URL` 时改用 PostgreSQL 仓储
+（`src/storage/postgres_repository.py`，含 schema 迁移与
+created_at/status 索引），CI 用 Postgres 服务容器自动验证该路径。
 
 本地启动：
 
@@ -652,5 +654,8 @@ Repository 抽象便于切换 Postgres。
 uvicorn src.api.run_server:application --reload
 ```
 
-Docker：`docker compose up --build`（api 在 8000，Streamlit 看板在 8501）。
-看板逻辑在 `scripts/dashboard.py`，UI 需在本地/容器运行验证。
+Docker：`docker compose up --build`（SQLite + api 在 8000，Streamlit 看板在
+8501）；`docker compose --profile postgres up --build` 额外启动
+postgres:16 并用 PostgreSQL 持久化 API。看板逻辑在 `scripts/dashboard.py`，
+当前读取 SQLite 输出库；Postgres 部署可用 API `/runs` 查询结果，UI 需在
+本地/容器运行验证。
