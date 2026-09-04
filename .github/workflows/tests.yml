@@ -81,7 +81,7 @@ jobs:
 
       - name: Build C++ backend
         run: |
-          g++ -shared -O2 -w -std=c++17 -pthread cpp/src/bs_kernels.cpp -o outputs/bs_kernels.so
+          g++ -shared -O2 -w -std=c++17 -fPIC -pthread cpp/src/bs_kernels.cpp -o outputs/bs_kernels.so
 
       - name: Run C++ backend tests
         env:
