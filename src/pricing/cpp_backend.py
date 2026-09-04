@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import ctypes
 import math
+import sys
 from pathlib import Path
 
 import numpy as np
@@ -17,7 +18,11 @@ import numpy as np
 
 def _locate_library() -> Path | None:
     root = Path(__file__).resolve().parents[2]
-    for name in ("bs_kernels.dll", "bs_kernels.so"):
+    names = ("bs_kernels.dll",) if sys.platform == "win32" else (
+        "bs_kernels.so",
+        "bs_kernels.dll",
+    )
+    for name in names:
         for base in (Path("outputs"), root / "outputs"):
             path = base / name
             if path.exists():
@@ -29,12 +34,50 @@ _LIB = None
 if _locate_library() is not None:
     try:
         _LIB = ctypes.CDLL(str(_locate_library()))
+        _d = ctypes.POINTER(ctypes.c_double)
+        _i = ctypes.POINTER(ctypes.c_int)
+
+        _LIB.batch_bs.argtypes = [
+            _d, _d, _d, _d, _d, _d, _i, ctypes.c_size_t,
+            _d, _d, _d, _d, _d, _d,
+        ]
         _LIB.batch_bs.restype = None
-        _LIB.mc_gbm.restype = None
+
+        _LIB.batch_iv.argtypes = [
+            _d, _d, _d, _d, _d, _d, _i, ctypes.c_size_t,
+            ctypes.c_double, ctypes.c_int, _d,
+        ]
         _LIB.batch_iv.restype = ctypes.c_int
-        _LIB.scenario_pnl.restype = None
-        _LIB.portfolio_var.restype = None
+
+        _LIB.mc_gbm.argtypes = [
+            ctypes.c_double, ctypes.c_double, ctypes.c_double,
+            ctypes.c_double, ctypes.c_double, ctypes.c_double,
+            ctypes.c_int, ctypes.c_uint, ctypes.c_int,
+            ctypes.POINTER(ctypes.c_double),
+            ctypes.POINTER(ctypes.c_double),
+        ]
+        _LIB.mc_gbm.restype = None
+
+        _LIB.mc_gbm_parallel.argtypes = [
+            ctypes.c_double, ctypes.c_double, ctypes.c_double,
+            ctypes.c_double, ctypes.c_double, ctypes.c_double,
+            ctypes.c_int, ctypes.c_uint, ctypes.c_int, ctypes.c_int,
+            ctypes.POINTER(ctypes.c_double),
+            ctypes.POINTER(ctypes.c_double),
+        ]
         _LIB.mc_gbm_parallel.restype = None
+
+        _LIB.scenario_pnl.argtypes = [
+            _d, _d, _d, _d, _d, _d, _i, ctypes.c_size_t,
+            ctypes.c_double, ctypes.c_double, _d,
+        ]
+        _LIB.scenario_pnl.restype = None
+
+        _LIB.portfolio_var.argtypes = [
+            _d, _d, ctypes.c_size_t, ctypes.c_double,
+            ctypes.POINTER(ctypes.c_double), _d,
+        ]
+        _LIB.portfolio_var.restype = None
     except OSError:
         _LIB = None
 

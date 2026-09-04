@@ -86,17 +86,4 @@ jobs:
       - name: Run C++ backend tests
         env:
           PYTHONPATH: .
-        run: |
-          set +e
-          for t in \
-            test_cpp_batch_bs_matches_python \
-            test_cpp_mc_overlaps_python_mc_ci \
-            test_cpp_mc_matches_python_path_distribution \
-            test_cpp_scenario_pnl_matches_python \
-            test_cpp_portfolio_var_matches_python_euler \
-            test_cpp_parallel_mc_matches_single_thread \
-            test_cpp_surface_prices_match_python; do
-            python -u -m pytest -q "tests/pricing/test_cpp_backend.py::$t" -m cpp
-            echo "EXIT_$t=$?"
-          done
-          exit 0
+        run: python -m pytest -q tests/pricing/test_cpp_backend.py -m cpp
