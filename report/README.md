@@ -23,6 +23,25 @@
 - [模型验证报告生成器](../scripts/run_validation_report.py)
 - 复现指南与模块文档：见仓库根 `README.md` 的“文档”一节。
 
+## 图表（`figures/`，由 `scripts/generate_report_figures.py` 生成）
+
+![Pricing convergence](figures/pricing_convergence.png)
+
+![Volatility filter comparison](figures/volatility_filter_comparison.png)
+
+![VaR backtest breaches](figures/var_backtest_breaches.png)
+
+完整列表：
+
+- `pricing_convergence.png`：CRR/Crank-Nicolson 相对 Black-Scholes 的收敛误差；
+- `degeneracy_validation.png`：Merton/Heston 极限退化误差；
+- `svi_surface.png`：真实 SPY 期权链 SVI 拟合与残差（分到期）；
+- `spy_rolling_long_straddle_equity_curve.png`：legacy 滚动回测权益与回撤；
+- `volatility_filter_comparison.png`：波动率过滤前后权益曲线对比；
+- `hedging_cost_sensitivity.png`：对冲阈值下 PnL 与交易成本；
+- `var_backtest_breaches.png`：SPY 95% 滚动历史 VaR 回测与违约点；
+- `cpp_speedup.png`：C++ 批量内核 vs Python 标量循环（实测）。
+
 ## 诚实性声明
 
 本报告是研究项目报告，展示方法论严谨性与工程能力，不是学术论文，也不是
