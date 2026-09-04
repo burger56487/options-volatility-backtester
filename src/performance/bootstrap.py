@@ -1,4 +1,9 @@
-"""Moving-block bootstrap confidence intervals with block-size heuristic."""
+"""Moving-block bootstrap confidence intervals with block-size heuristic.
+
+The block sampler and the block-size heuristic live in :mod:`src.statistics`;
+this module keeps the performance-oriented wrappers (percentile CI and
+annualized Sharpe CI) so both public APIs stay unchanged.
+"""
 
 from __future__ import annotations
 
@@ -7,9 +12,17 @@ import math
 import numpy as np
 import pandas as pd
 
+from src.statistics import (
+    block_size_heuristic,
+    moving_block_bootstrap_samples,
+)
 
-def block_size_heuristic(n: int) -> int:
-    return max(1, int(math.ceil(n ** (1.0 / 3.0))))
+
+def _clean_series(returns) -> pd.Series:
+    clean = returns.dropna()
+    if len(clean) == 0:
+        raise ValueError("No observations for bootstrap.")
+    return clean
 
 
 def moving_block_samples(
@@ -18,27 +31,16 @@ def moving_block_samples(
     block_size: int | None = None,
     seed: int | None = None,
 ) -> np.ndarray:
-    clean = np.asarray(returns.dropna(), dtype=float)
-    n = clean.size
-    if n == 0:
-        raise ValueError("No observations for bootstrap.")
+    clean = _clean_series(returns)
+    n = int(clean.size)
     if block_size is None:
         block_size = block_size_heuristic(n)
-    block_size = min(max(block_size, 1), n)
-    rng = np.random.default_rng(seed)
-    n_blocks = int(math.ceil(n / block_size))
-    starts = rng.integers(
-        0,
-        n - block_size + 1,
-        size=(n_samples, n_blocks),
+    return moving_block_bootstrap_samples(
+        clean,
+        block_size=block_size,
+        n_samples=n_samples,
+        seed=seed,
     )
-    out = np.empty((n_samples, n))
-    for i in range(n_samples):
-        parts = [
-            clean[s : s + block_size] for s in starts[i]
-        ]
-        out[i] = np.concatenate(parts)[:n]
-    return out
 
 
 def percentile_ci(values: np.ndarray, confidence_level: float):

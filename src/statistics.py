@@ -11,6 +11,11 @@ import numpy as np
 import pandas as pd
 
 
+def block_size_heuristic(n: int) -> int:
+    """Moving-block length heuristic: ceil(n^(1/3)), at least 1."""
+    return max(1, int(np.ceil(n ** (1.0 / 3.0))))
+
+
 def moving_block_bootstrap_samples(
     values: pd.Series,
     block_size: int = 5,
