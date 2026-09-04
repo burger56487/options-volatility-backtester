@@ -1,5 +1,10 @@
 OPTIONS VOLATILITY TRADING AND DYNAMIC HEDGING BACKTESTER
 
+期权波动率交易与动态对冲研究平台
+
+基于真实标的行情与合成历史期权报价的可复现研究平台，支持期权定价、隐含波动率、
+动态 Delta 对冲、交易成本分析、风险指标与参数敏感性研究。
+
 Overview
 
 This is a Python research project for studying delta-hedged long straddle
@@ -412,6 +417,61 @@ This project is provided solely for educational and research purposes. Nothing i
 this repository constitutes investment advice, financial advice, an offer to buy
 or sell securities, or a recommendation to use any trading strategy.
 
+## 数据与研究边界 (DATA AND RESEARCH BOUNDARIES)
+
+本项目是一个用于期权定价、波动率策略、动态对冲与风险分析的研究型回测平台。
+
+### 当前数据构成
+
+- **标的行情：真实历史数据。** 使用公开数据源获取 SPY 的日频历史行情，
+  包括开盘价、最高价、最低价、收盘价、复权收盘价与成交量。
+- **期权报价：合成历史数据。** 历史期权价格、隐含波动率曲面和买卖价差并非
+  来自可逐笔验证的真实历史期权链，而是根据标的价格、历史波动率、期限结构、
+  波动率偏斜、微笑曲率和预设交易成本规则生成。
+- **交易执行：模拟成交。** 策略成交、Delta 对冲、佣金、滑点和买卖价差均由
+  回测规则模拟，不代表真实交易所或经纪商的实际成交结果。
+
+### 结果解释
+
+当前历史回测结果主要用于研究：不同波动率假设对定价的影响、Delta 动态对冲的
+离散误差、对冲频率与交易成本之间的权衡、隐含波动率与实现波动率错配引起的
+模型风险，以及策略与参数设定下的敏感性和稳健性。
+
+当前结果不应解释为：真实历史期权市场中的可实现收益、已验证的实盘交易策略、
+对未来收益的承诺，或投资建议。
+
+### 可追溯性
+
+每次通过 `scripts/run_backtest.py` 的运行都会生成独立输出目录，包含
+`run_metadata.json`（run_id、数据/执行/评估边界、Git 提交、配置哈希、随机种子、
+依赖版本）、`config_snapshot.yaml`、`research_boundary.json` 与 `manifest.json`；
+结果表均带 `run_id` 列。每条回测 summary 也携带 `underlying_data_type`、
+`option_data_type`、`execution_type` 等字段，结果文件无需阅读 README 即可识别
+数据性质。
+
+### 后续扩展
+
+真实期权链快照模块（`src/market_data/real_option_chain.py`）用于市场快照分析、
+报价质量过滤、隐含波动率反解、偏斜与期限结构可视化，以及后续的曲面校准与
+样本外研究，用于比较合成市场假设与真实市场特征的差异。
+
+## STATISTICAL VALIDATION AND P&L ATTRIBUTION
+
+The rolling backtest summary now reports:
+
+- `sharpe_like_ratio`: per-trade mean minus risk-free rate, divided by
+  per-trade volatility, scaled by `sqrt(number_of_trades)` (kept for
+  backward compatibility; this is not an annualized Sharpe);
+- `annualized_sharpe_estimate`: trade-level Sharpe scaled by
+  `sqrt(trades_per_year_assumed)` with
+  `trades_per_year_assumed = 252 / entry_spacing_trading_days`;
+- moving-block-bootstrap confidence intervals for mean trade return,
+  `sharpe_like_ratio`, and the annualized estimate (`src/statistics.py`).
+
+`src/backtest/pnl_attribution.py` decomposes each trading day's P&L into
+Delta, Gamma, Vega, Theta, Rho and hedge-cost contributions using the
+previous day's recorded exposures, and reports the unexplained residual.
+See `scripts/run_upgrade_demo.py` for an end-to-end example.
 
 head -30 README.md
 tail -20 README.md
@@ -419,4 +479,3 @@ tail -20 README.md
 git add README.md
 git commit -m "Add options backtester documentation"
 git push
-

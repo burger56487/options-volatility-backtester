@@ -1,0 +1,46 @@
+project:
+  name: options-volatility-backtester
+  version: "1.1.0"
+  research_purpose: education_and_research
+
+data:
+  underlying:
+    source: public_market_data
+    data_type: real
+    frequency: daily
+    adjusted: true
+
+  options:
+    source: synthetic_option_chain_generator
+    data_type: synthetic
+    historical_quotes: false
+
+  risk_free_rate:
+    source: configured
+    data_type: assumed
+
+  dividend_yield:
+    source: configured
+    data_type: assumed
+
+execution:
+  mode: simulated
+  option_entry_price: ask
+  option_exit_price: bid
+  hedge_execution: simulated
+  commission_enabled: true
+  slippage_enabled: true
+  market_impact_enabled: false
+  partial_fill_enabled: false
+
+research:
+  evaluation_mode: in_sample
+  signal_delay_days: 1
+  prevent_lookahead: true
+  random_seed: 42
+
+output:
+  directory: outputs
+  save_metadata: true
+  save_config_snapshot: true
+  save_git_commit: true

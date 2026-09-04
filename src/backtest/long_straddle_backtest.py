@@ -20,6 +20,7 @@ from src.strategy.delta_hedging import (
     DeltaHedger,
     UnderlyingTransactionCostModel,
 )
+from src.experiment_meta import experiment_metadata
 from src.strategy.long_straddle import (
     LongStraddle,
     build_long_atm_straddle,
@@ -374,6 +375,7 @@ def run_long_straddle_backtest(
         "final_hedge_equity": float(
             equity_curve["hedge_equity"].iloc[-1]
         ),
+        **experiment_metadata(),
     }
 
     return LongStraddleBacktestResult(

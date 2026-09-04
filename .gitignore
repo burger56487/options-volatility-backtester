@@ -222,3 +222,8 @@ __marimo__/
 __pycache__/
 .pytest_cache/
 *.pyc
+
+# Run outputs (commit only curated samples)
+outputs/*
+!outputs/.gitkeep
+!outputs/real_option_chain/

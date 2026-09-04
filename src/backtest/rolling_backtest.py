@@ -20,6 +20,8 @@ from src.backtest.long_straddle_backtest import (
 from src.market_data.synthetic_option_chain import (
     VolatilitySurfaceParameters,
 )
+from src.experiment_meta import experiment_metadata
+from src.statistics import block_bootstrap_intervals
 
 
 @dataclass(frozen=True)
@@ -331,6 +333,23 @@ def run_rolling_long_straddle_backtest(
         ),
     )
 
+    trades_per_year = max(
+        1.0,
+        252.0 / float(rolling_config.entry_spacing_trading_days),
+    )
+
+    stat_intervals = block_bootstrap_intervals(
+        trade_returns=trade_results["trade_return"],
+        block_size=5,
+        n_samples=2_000,
+        seed=20260814,
+        confidence_level=rolling_config.confidence_level,
+        risk_free_rate=(
+            rolling_config.risk_free_rate_for_sharpe
+        ),
+        trades_per_year=trades_per_year,
+    )
+
     total_pnl = float(trade_results["final_pnl"].sum())
     win_rate = float(
         (trade_results["final_pnl"] > 0).mean()
@@ -382,6 +401,17 @@ def run_rolling_long_straddle_backtest(
             trade_results["hedge_turnover_ratio"].mean()
         ),
         **risk_metrics,
+        **stat_intervals,
+        "trades_per_year_assumed": trades_per_year,
+        "metric_definitions": (
+            "sharpe_like_ratio = (mean_trade_return - risk_free) / "
+            "trade_return_volatility * sqrt(n_trades); "
+            "annualized_sharpe_estimate = trade-level Sharpe * "
+            "sqrt(trades_per_year_assumed); "
+            "confidence intervals use a moving-block bootstrap "
+            "of trade returns."
+        ),
+        **experiment_metadata(),
     }
 
     return RollingBacktestResult(
