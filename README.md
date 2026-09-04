@@ -518,12 +518,12 @@ or sell securities, or a recommendation to use any trading strategy.
 | `src/market_data/real_option_chain.py` | 否（独立快照分析） | 已测试，待接入统一数据层 |
 | `src/market_data/pipeline.py` | 演示脚本调用 | 真实历史行情尚未转统一 schema 走管道 |
 | `src/features/` `src/evaluation/` | strict runner 调用 | 已接入样本外评估 |
-| `src/portfolio/` `src/risk/` `src/execution/` | **否（独立演示组件）** | 账户/风控/执行引擎尚未驱动主回测 |
-| `src/backtest/rolling_backtest.py` | 主回测入口 | 仍为老 close-to-close 路径，默认单笔固定合约 |
+| `src/portfolio/` `src/risk/` `src/execution/` | **是（账户引擎路径）** | 驱动单腿 Call、ATM 跨式与滚动跨式回测，逐笔 PnL 桥对账 |
+| `src/backtest/rolling_backtest.py` | legacy 对照 | 老 close-to-close 路径，保留用于结果对照，不再是推荐入口 |
 
-重要：`run_rolling_long_straddle_backtest`（老回测）目前**没有**接入账户、
-执行引擎与交易前风控，其权益是"逐笔 PnL 累加到示例资本"的简化口径，不构成
-组合级账户净值。两者合并是下一阶段的核心工作。
+推荐入口：`run_rolling_account_straddle_backtest`（账户引擎驱动，每笔交易都通过
+PnL 桥对账）。真实 SPY 数据上 17 笔滚动跨式总 PnL −8038.77，与 legacy 路径的
+−8038.86 基本一致（差异来自计费口径细节），验证迁移等价性成立。
 
 ## STATISTICAL VALIDATION AND P&L ATTRIBUTION
 
