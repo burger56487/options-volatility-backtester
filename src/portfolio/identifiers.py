@@ -6,21 +6,13 @@ from dataclasses import dataclass
 from datetime import date
 from enum import Enum
 
+from src.domain.enums import ExerciseStyle, OptionType
+
 
 class InstrumentType(str, Enum):
     STOCK = "stock"
     OPTION = "option"
     CASH = "cash"
-
-
-class OptionType(str, Enum):
-    CALL = "call"
-    PUT = "put"
-
-
-class ExerciseStyle(str, Enum):
-    EUROPEAN = "european"
-    AMERICAN = "american"
 
 
 @dataclass(frozen=True)

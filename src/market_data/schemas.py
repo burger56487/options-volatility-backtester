@@ -4,23 +4,9 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass
 from datetime import date, datetime
-from enum import Enum
 from typing import Any
 
-
-class OptionType(str, Enum):
-    CALL = "call"
-    PUT = "put"
-
-
-class DataType(str, Enum):
-    REAL = "real"
-    SYNTHETIC = "synthetic"
-
-
-class ExerciseStyle(str, Enum):
-    EUROPEAN = "european"
-    AMERICAN = "american"
+from src.domain.enums import DataType, ExerciseStyle, OptionType
 
 
 @dataclass(frozen=True)
