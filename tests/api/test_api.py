@@ -70,3 +70,33 @@ def test_pricing_surface_with_cpp_backend(tmp_path):
         assert response.json()["n_nodes"] == 18
     else:
         assert response.status_code == 501
+
+
+def test_pricing_surface_accepts_explicit_as_of(tmp_path):
+    client = _client(tmp_path)
+    response = client.post(
+        "/pricing/surface",
+        json={
+            "spot": 100.0,
+            "as_of": "2026-09-04",
+            "nodes": [
+                {"expiry_days": 30, "sigma": 0.12},
+            ],
+        },
+    )
+    assert response.status_code in (200, 501)
+
+
+def test_pricing_surface_rejects_invalid_as_of(tmp_path):
+    client = _client(tmp_path)
+    response = client.post(
+        "/pricing/surface",
+        json={
+            "spot": 100.0,
+            "as_of": "not-a-date",
+            "nodes": [
+                {"expiry_days": 30, "sigma": 0.12},
+            ],
+        },
+    )
+    assert response.status_code == 422

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import date
 from typing import Any
 
 from pydantic import BaseModel, Field
@@ -37,6 +38,7 @@ class SurfaceNodeParams(BaseModel):
 
 class SurfacePriceRequest(BaseModel):
     spot: float = Field(gt=0)
+    as_of: date | None = None
     risk_free_rate: float = 0.04
     dividend_yield: float = 0.0
     nodes: list[SurfaceNodeParams] = Field(min_length=1)

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from typing import Callable
 from uuid import uuid4
 
@@ -59,9 +59,7 @@ def create_app(
 
     @app.post("/pricing/surface", response_model=SurfacePriceResponse)
     def price_surface(request: SurfacePriceRequest) -> SurfacePriceResponse:
-        from datetime import date, timedelta
-
-        as_of = date(2026, 9, 4)
+        as_of = request.as_of if request.as_of is not None else date.today()
         points = [
             SurfacePoint(
                 expiry=as_of + timedelta(days=node.expiry_days),
