@@ -258,10 +258,13 @@ CI (``.github/workflows/tests.yml``) runs two parallel jobs:
 - ``test``: the full pytest suite with coverage, C++ backend build and tests,
   and the model-validation report; reports are uploaded as artifacts.
 
-The coverage report is produced as an artifact and is not used as a hard gate.
-Performance benchmarks are opt-in (``-m perf``) because absolute timings are
-not stable on shared CI runners; the C++/Python speedup floor test is kept
-conservative for the same reason.
+Line coverage is measured against ``src`` and gated at 80% (the measured value
+is around 86%). CI runs Python 3.12 only: the pinned NumPy 2.5 release line
+requires Python >= 3.12, so a multi-version matrix is intentionally not
+enabled. Performance benchmarks run on demand via ``-m perf`` locally or a
+manual ``workflow_dispatch`` run in CI, because absolute timings are not stable
+on shared runners; the C++/Python speedup floor test is kept conservative for
+the same reason.
 
 Scope: this is research-grade quality assurance for correctness and
 reproducibility. It does not include production monitoring or alerting, chaos
