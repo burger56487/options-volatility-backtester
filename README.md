@@ -520,6 +520,34 @@ or sell securities, or a recommendation to use any trading strategy.
 佣金/滑点/市场冲击定价（实际成交价口径，成本只作归因字段）、陈旧报价拒绝、
 限价单不可成交取消、受流动性约束的部分成交，以及执行质量指标与成交明细 CSV。
 
+## 市场做市研究与事件驱动 RL (MARKET MAKING RESEARCH)
+
+任务十四的做市研究由三层模块构成，全部为**研究仿真，不代表实盘或真实期权
+行情**：
+
+- `src/market_making/greeks_book.py`：多合约 Greeks 感知报价。按净
+  Delta/Gamma/Vega 在跨行权价与到期结构上聚合风险：Delta 采用 A–S 保留价
+  偏移（以各腿自身 Delta 折算到期权权利金），Gamma/Vega 按各腿对净风险的
+  贡献加宽价差，并按 0–7/7–30/30–90/90+ 交易日到期桶汇总风险。
+- `src/backtest/account_market_making.py`：把上述报价策略接入账户引擎。
+  每日事件中 taker 以可配置概率到价成交（多头以 ask 卖出、空头以 bid 买回，
+  逐笔佣金与价差归因），随后按阈值 Δ 中性动态对冲；每笔期权成交做交易前
+  限额检查，日末做日亏损/回撤熔断检查；覆盖融资、期权到期结算与 PnL 桥
+  对账，输出 `snapshots.csv`、`fills.csv`、`breach_log.csv` 与 `summary.json`。
+- 单资产事件驱动研究栈，与论文《Continuous-time RL for market making》对应：
+  - `src/market_making/intensity_env.py`：§5.1 仿真框架——Poisson 到达 +
+    MNL 路由 + 报价菜单 + 库存约束；含网格版仿真用于离散时间基准；
+  - `src/market_making/dp.py`：§6.2 有限状态 ODE 基准（式 6.1 后向 Euler）
+    与指数成交闭式交叉验证（式 6.4，可对拍 3.42025）；
+  - `src/market_making/rl.py`：§5.2 Algorithm 1（连续时间 Linear-MC）与
+    Algorithm 2（离散时间 AC 基准），§5.3 Linear-Pair Actor；
+  - `src/market_making/study.py`：DP/Greedy/Uniform/RL 同订单流、同 seed、
+    多 seed 对照，输出 `comparison.csv`、`aggregated.csv`、
+    `episode_metrics.csv`、`comparison.png` 与 `summary.json`（含置信区间）。
+
+入口脚本：`scripts/run_market_making_study.py`（论文 Experiment I 参数，
+DP V*(0,0) 可与 1.90299 对拍）与 `scripts/run_account_market_making_demo.py`。
+
 ## 模块集成状态 (INTEGRATION STATUS)
 
 | 模块 | 是否被主回测流程调用 | 状态 |
