@@ -419,3 +419,141 @@ def estimate_per_expiry_dividend_yields(
     for expiry in frame["expiry"].unique():
         estimates.setdefault(expiry, fallback)
     return estimates, estimated
+
+
+def estimate_forward_bounds(
+    quotes: pd.DataFrame,
+    risk_free_rate: float,
+) -> dict:
+    """Estimate per-expiry forward interval from ATM call/put bid-ask quotes.
+
+    F = K + (C - P) * exp(rT). Using C_bid - P_ask gives a low bound and
+    C_ask - P_bid a high bound, which propagates bid-ask uncertainty into the
+    forward estimate.
+    """
+    frame = quotes.copy()
+    frame["mid"] = 0.5 * (frame["bid"] + frame["ask"])
+    bounds: dict = {}
+    for expiry, group in frame.groupby("expiry"):
+        spot = float(group["spot"].iloc[0])
+        time_to_expiry = float(group["time_to_expiry"].iloc[0])
+        if time_to_expiry <= 0:
+            continue
+        discount = math.exp(risk_free_rate * time_to_expiry)
+        best = None
+        for strike, strike_group in group.groupby("strike"):
+            calls = strike_group[
+                strike_group["option_type"] == "call"
+            ]
+            puts = strike_group[
+                strike_group["option_type"] == "put"
+            ]
+            if calls.empty or puts.empty:
+                continue
+            low = float(strike) + (
+                float(calls["bid"].iloc[0])
+                - float(puts["ask"].iloc[0])
+            ) * discount
+            high = float(strike) + (
+                float(calls["ask"].iloc[0])
+                - float(puts["bid"].iloc[0])
+            ) * discount
+            distance = abs(float(strike) - spot)
+            if best is None or distance < best[0]:
+                best = (distance, low, high)
+        if best is not None:
+            bounds[expiry] = {
+                "forward_low": best[1],
+                "forward_high": best[2],
+            }
+    return bounds
+
+
+def grade_arbitrage(
+    quotes: pd.DataFrame,
+    risk_free_rate: float,
+    dividend_yield: float = 0.012,
+) -> pd.DataFrame:
+    """Grade European no-arbitrage checks with American-style soft flags."""
+    frame = quotes.copy()
+    frame["mid"] = 0.5 * (frame["bid"] + frame["ask"])
+    frame["hard_violation"] = False
+    frame["mid_only_violation"] = False
+    frame["usable_for_european_iv"] = True
+    for index, row in frame.iterrows():
+        t = row["time_to_expiry"]
+        if t <= 0:
+            continue
+        discounted_spot = row["spot"] * math.exp(
+            -dividend_yield * t
+        )
+        discounted_strike = row["strike"] * math.exp(
+            -risk_free_rate * t
+        )
+        if row["option_type"] == "call":
+            lower = max(0.0, discounted_spot - discounted_strike)
+            upper = discounted_spot
+        else:
+            lower = max(0.0, discounted_strike - discounted_spot)
+            upper = discounted_strike
+        tolerance = 1e-6
+        hard = row["ask"] < lower - tolerance or row[
+            "bid"
+        ] > upper + tolerance
+        mid_only = (
+            row["mid"] < lower - tolerance
+            or row["mid"] > upper + tolerance
+        )
+        frame.at[index, "hard_violation"] = bool(hard)
+        frame.at[index, "mid_only_violation"] = bool(
+            mid_only and not hard
+        )
+        frame.at[index, "usable_for_european_iv"] = bool(
+            not hard
+        )
+    return frame
+
+
+def add_iv_band(
+    quotes: pd.DataFrame,
+    risk_free_rate: float,
+    dividend_yield: float = 0.012,
+) -> pd.DataFrame:
+    """Solve IV on bid, mid and ask and report the implied band width."""
+    from src.pricing.implied_volatility import implied_volatility
+
+    frame = quotes.copy()
+    frame["mid"] = 0.5 * (frame["bid"] + frame["ask"])
+    frame["iv_bid"] = float("nan")
+    frame["iv_mid"] = float("nan")
+    frame["iv_ask"] = float("nan")
+    frame["iv_band_width"] = float("nan")
+    for index, row in frame.iterrows():
+        if row["time_to_expiry"] <= 0 or row["spot"] <= 0:
+            continue
+        values = {}
+        for name, price in [
+            ("iv_bid", row["bid"]),
+            ("iv_mid", row["mid"]),
+            ("iv_ask", row["ask"]),
+        ]:
+            try:
+                values[name] = implied_volatility(
+                    market_price=float(price),
+                    spot=float(row["spot"]),
+                    strike=float(row["strike"]),
+                    time_to_expiry=float(row["time_to_expiry"]),
+                    risk_free_rate=risk_free_rate,
+                    option_type=row["option_type"],
+                    dividend_yield=dividend_yield,
+                )
+            except Exception:  # noqa: BLE001
+                values[name] = float("nan")
+        frame.at[index, "iv_bid"] = values["iv_bid"]
+        frame.at[index, "iv_mid"] = values["iv_mid"]
+        frame.at[index, "iv_ask"] = values["iv_ask"]
+        band = values["iv_ask"] - values["iv_bid"]
+        frame.at[index, "iv_band_width"] = (
+            band if band == band else float("nan")
+        )
+    return frame
