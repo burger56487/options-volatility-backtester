@@ -371,6 +371,8 @@ def estimate_all_forwards(
     for _, group in pairs.groupby("expiry"):
         results.append(_fit_expiry(group))
     frame = pd.DataFrame([result.to_dict() for result in results])
+    if "expiry" in frame.columns:
+        frame["expiry"] = pd.to_datetime(frame["expiry"])
     if "time_to_expiry" in frame.columns:
         frame = frame.sort_values("time_to_expiry").reset_index(drop=True)
     return frame

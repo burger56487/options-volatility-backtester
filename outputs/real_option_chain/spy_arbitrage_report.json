@@ -1,0 +1,17 @@
+{
+  "total_checked": 930,
+  "bound_violations": 56,
+  "bound_hard": 0,
+  "bound_mid_only": 56,
+  "parity_violations": 310,
+  "parity_hard": 1,
+  "parity_mid_only": 309,
+  "monotonicity_violations": 0,
+  "butterfly_violations": 176,
+  "calendar_violations": 20,
+  "notes": [
+    "bound/parity hard = tradable at quotes; mid_only = mid outside but quotes not (diagnostic)",
+    "calendar checks are diagnostics for dividend-paying SPY: longer maturity need not be more expensive across an ex-dividend date",
+    "F/D are fitted from the same mids, so bound/parity counts partly reflect regression residuals rather than tradable profit"
+  ]
+}
