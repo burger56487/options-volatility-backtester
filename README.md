@@ -455,6 +455,15 @@ or sell securities, or a recommendation to use any trading strategy.
 报价质量过滤、隐含波动率反解、偏斜与期限结构可视化，以及后续的曲面校准与
 样本外研究，用于比较合成市场假设与真实市场特征的差异。
 
+## 随机/跳跃/局部波动率 (STOCHASTIC VOL MODELS)
+
+`src/pricing/heston.py`（特征函数 + 全截断 MC）、`src/pricing/merton.py`
+（欧式解析级数 + compound-Poisson MC）与 `src/pricing/local_vol.py`
+（Dupire 局部方差）用于受控研究与模型对比。重要边界：单一真实期权快照不足以
+可靠识别 Heston 等随机波动率参数，跨日校准实验基于带标记的合成曲面；这些模型
+不用于策略回测，也不构成实盘结论。`src/pricing/calibration.py` 提供 BS 曲面拟合
+与模型对比报告入口。
+
 ## 数据质量管道 (DATA QUALITY PIPELINE)
 
 原始市场数据不会直接进入回测。`src/market_data/pipeline.py` 对每次输入依次执行：
