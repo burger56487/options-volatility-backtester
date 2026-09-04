@@ -18,6 +18,8 @@ def simulate_quotes(
     half_spread: float,
     inventory: float = 0.0,
     skew_strength: float = 0.0,
+    max_inventory: float | None = None,
+    loss_limit: float | None = None,
     seed: int | None = None,
 ):
     """Simulate one path of quote fills and mark-to-market PnL."""
@@ -25,7 +27,12 @@ def simulate_quotes(
     rng = np.random.default_rng(seed)
     cash = 0.0
     fills = []
+    anti_cheat_penalty = 0.0
+    halted = False
     for i in range(len(mid) - 1):
+        if loss_limit is not None and cash < -abs(loss_limit):
+            halted = True
+            break
         bid_offset, ask_offset = (
             fixed_quote_offsets(half_spread)
             if skew_strength == 0.0
@@ -39,7 +46,18 @@ def simulate_quotes(
         # Market orders arrive one per step on a random side.
         side = "buy" if rng.random() < 0.5 else "sell"
         offset = ask_offset if side == "buy" else bid_offset
-        if rng.random() < fill_probability(offset, half_spread):
+        anti_cheat_penalty += (1.0 - fill_probability(offset, half_spread)) * (
+            2.0 * half_spread
+        )
+        would_fill = rng.random() < fill_probability(offset, half_spread)
+        if (
+            would_fill
+            and (
+                max_inventory is None
+                or abs(inventory + (1.0 if side == "sell" else -1.0))
+                <= max_inventory
+            )
+        ):
             price = mid[i] + offset
             if side == "buy":  # they buy from us -> we short
                 cash += price
@@ -48,11 +66,19 @@ def simulate_quotes(
                 cash -= price
                 inventory += 1.0
             fills.append((i, side, price))
+    if (
+        max_inventory is not None
+        and abs(inventory) > max_inventory
+    ):
+        cash += inventory * mid[-1]  # force liquidation at last mark
+        inventory = 0.0
     terminal_pnl = cash + inventory * mid[-1]
     return {
         "terminal_pnl": float(terminal_pnl),
         "inventory": float(inventory),
         "fill_count": len(fills),
+        "halted": bool(halted),
+        "anti_cheat_penalty": float(anti_cheat_penalty),
         "fills": fills,
     }
 

@@ -46,3 +46,30 @@ def test_simulator_metrics_and_fill_probability():
     assert "terminal_pnl" in metrics
     assert 0.0 <= fill_probability(0.0, 0.05) <= 1.0
     assert fill_probability(1.0, 0.05) < fill_probability(0.0, 0.05)
+
+
+def test_inventory_cap_and_loss_halt():
+    rng = np.random.default_rng(5)
+    mid = 100.0 + np.cumsum(rng.normal(0, 0.1, 200))
+    capped = simulate_quotes(
+        mid,
+        half_spread=0.05,
+        max_inventory=3.0,
+        seed=5,
+    )
+    assert abs(capped["inventory"]) <= 3.0
+    loss_limited = simulate_quotes(
+        mid,
+        half_spread=0.05,
+        loss_limit=1.0,
+        seed=5,
+    )
+    assert loss_limited["halted"] or loss_limited["terminal_pnl"] >= -2.0
+
+
+def test_anti_cheat_penalty_grows_with_wide_quotes():
+    rng = np.random.default_rng(6)
+    mid = 100.0 + np.cumsum(rng.normal(0, 0.05, 80))
+    tight = simulate_quotes(mid, half_spread=0.01, seed=6)
+    wide = simulate_quotes(mid, half_spread=0.5, seed=6)
+    assert wide["anti_cheat_penalty"] > tight["anti_cheat_penalty"]
