@@ -48,6 +48,40 @@ BLOCKING_ACTIONS = {
 }
 
 
+def limit_usage_report(
+    current: dict[str, float],
+    limits: RiskLimits,
+) -> list[dict]:
+    """Report limit usage percentages for exposure-like limits."""
+    fields = {
+        "max_gross_exposure": "gross_exposure",
+        "max_leverage": "leverage",
+        "max_abs_delta": "delta",
+        "max_abs_gamma": "gamma",
+        "max_abs_vega": "vega",
+        "min_cash_buffer": "cash",
+    }
+    rows = []
+    for limit_name, field_name in fields.items():
+        limit_value = getattr(limits, limit_name)
+        current_value = current.get(field_name, float("nan"))
+        usage = (
+            current_value / limit_value
+            if limit_value and current_value == current_value
+            else float("nan")
+        )
+        rows.append(
+            {
+                "limit": limit_name,
+                "current": current_value,
+                "limit_value": limit_value,
+                "usage_pct": usage * 100.0 if usage == usage else float("nan"),
+                "breached": bool(usage > 1.0) if usage == usage else False,
+            }
+        )
+    return rows
+
+
 def check_portfolio_limits(
     gross_exposure: float,
     leverage: float,

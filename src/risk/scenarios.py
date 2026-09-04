@@ -22,6 +22,13 @@ def preset_scenario_shocks(kind: str) -> dict[str, float]:
         "equity_down_10": {"equity": -0.10, "volatility": 0.10},
         "vol_surge": {"equity": 0.0, "volatility": 0.20},
         "crash": {"equity": -0.20, "volatility": 0.30},
+        "vol_surface_stress": {
+            "equity": 0.0,
+            "volatility": 0.20,
+            "skew": -0.10,
+            "curvature": 0.05,
+            "term": 0.05,
+        },
     }
     if kind not in scenarios:
         raise KeyError(f"Unknown scenario: {kind}")

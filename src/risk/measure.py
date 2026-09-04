@@ -108,3 +108,72 @@ def historical_var(
         confidence_level=confidence_level,
         n_observations=n,
     )
+
+
+def filtered_historical_var(
+    pnl: pd.Series,
+    confidence_level: float = 0.95,
+    decay: float = 0.97,
+) -> RiskMeasureResult:
+    """EWMA-weighted historical simulation (recent losses weighted more)."""
+    values = pnl.dropna().to_numpy(dtype=float)
+    n = int(values.size)
+    if n < MINIMUM_OBSERVATIONS:
+        return RiskMeasureResult(
+            method="filtered_historical",
+            var=float("nan"),
+            expected_shortfall=float("nan"),
+            confidence_level=confidence_level,
+            n_observations=n,
+            insufficient_sample=True,
+        )
+    weights = np.array(
+        [(1.0 - decay) * decay ** (n - 1 - i) for i in range(n)]
+    )
+    weights /= weights.sum()
+    order = np.argsort(values)
+    cumulative = np.cumsum(weights[order])
+    idx = int(np.searchsorted(cumulative, 1.0 - confidence_level))
+    var = max(0.0, -float(values[order[idx]]))
+    tail_mask = order[: idx + 1]
+    es = float(
+        max(0.0, -np.sum(values[tail_mask] * weights[tail_mask]) / weights[tail_mask].sum())
+    )
+    return RiskMeasureResult(
+        method="filtered_historical",
+        var=var,
+        expected_shortfall=es,
+        confidence_level=confidence_level,
+        n_observations=n,
+        params={"decay": decay},
+    )
+
+
+def monte_carlo_var(
+    pnl_simulator,
+    n_scenarios: int = 10_000,
+    confidence_level: float = 0.95,
+    seed: int | None = None,
+) -> RiskMeasureResult:
+    """Monte Carlo VaR via a supplied full-revaluation simulator."""
+    if n_scenarios < MINIMUM_OBSERVATIONS:
+        return RiskMeasureResult(
+            method="monte_carlo",
+            var=float("nan"),
+            expected_shortfall=float("nan"),
+            confidence_level=confidence_level,
+            n_observations=n_scenarios,
+            insufficient_sample=True,
+        )
+    scenarios = np.asarray(pnl_simulator(n_scenarios, seed), dtype=float)
+    quantile = np.quantile(scenarios, 1.0 - confidence_level)
+    tail = scenarios[scenarios <= quantile]
+    return RiskMeasureResult(
+        method="monte_carlo",
+        var=float(max(0.0, -quantile)),
+        expected_shortfall=float(max(0.0, -tail.mean()))
+        if tail.size
+        else 0.0,
+        confidence_level=confidence_level,
+        n_observations=int(n_scenarios),
+    )
