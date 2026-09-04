@@ -8,6 +8,8 @@
 #include <cmath>
 #include <cstddef>
 #include <random>
+#include <thread>
+#include <vector>
 
 static const double PI = 3.14159265358979323846;
 
@@ -148,6 +150,59 @@ EXPORT void mc_gbm(
       (sum_sq - n_paths * mean * mean) / (n_paths - 1.0);
   *out_price = mean;
   *out_se = std::sqrt(variance / n_paths);
+}
+
+EXPORT void mc_gbm_parallel(
+    double spot, double strike, double T, double r, double q, double sigma,
+    int n_paths, unsigned seed, int call, int threads, double *out_price,
+    double *out_se) {
+  threads = threads < 1 ? 1 : threads;
+  const int per_thread = n_paths / threads;
+  std::vector<double> sums(threads, 0.0);
+  std::vector<double> sum_sqs(threads, 0.0);
+  std::vector<int> counts(threads, 0);
+  const double drift = (r - q - 0.5 * sigma * sigma) * T;
+  const double diffusion = sigma * std::sqrt(T);
+  const double discount = std::exp(-r * T);
+  auto worker = [&](int tid) {
+    std::mt19937_64 rng(seed + tid * 7919u);
+    std::normal_distribution<double> normal(0.0, 1.0);
+    const int start = tid * per_thread;
+    const int end = (tid == threads - 1) ? n_paths : start + per_thread;
+    double sum = 0.0;
+    double sum_sq = 0.0;
+    for (int i = start; i < end; ++i) {
+      const double terminal =
+          spot * std::exp(drift + diffusion * normal(rng));
+      double payoff = 0.0;
+      if (call)
+        payoff = terminal > strike ? terminal - strike : 0.0;
+      else
+        payoff = strike > terminal ? strike - terminal : 0.0;
+      const double pnl = discount * payoff;
+      sum += pnl;
+      sum_sq += pnl * pnl;
+    }
+    sums[tid] = sum;
+    sum_sqs[tid] = sum_sq;
+    counts[tid] = end - start;
+  };
+  std::vector<std::thread> pool;
+  pool.reserve(threads);
+  for (int t = 0; t < threads; ++t) pool.emplace_back(worker, t);
+  for (auto &t : pool) t.join();
+  double sum = 0.0;
+  double sum_sq = 0.0;
+  int n = 0;
+  for (int t = 0; t < threads; ++t) {
+    sum += sums[t];
+    sum_sq += sum_sqs[t];
+    n += counts[t];
+  }
+  const double mean = sum / n;
+  const double variance = (sum_sq - n * mean * mean) / (n - 1.0);
+  *out_price = mean;
+  *out_se = std::sqrt(variance / n);
 }
 
 EXPORT void scenario_pnl(

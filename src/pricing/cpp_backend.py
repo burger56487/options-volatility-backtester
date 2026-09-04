@@ -34,6 +34,7 @@ if _locate_library() is not None:
         _LIB.batch_iv.restype = ctypes.c_int
         _LIB.scenario_pnl.restype = None
         _LIB.portfolio_var.restype = None
+        _LIB.mc_gbm_parallel.restype = None
     except OSError:
         _LIB = None
 
@@ -127,6 +128,39 @@ def cpp_mc_gbm(
     return {"price": float(price.value), "standard_error": float(se.value)}
 
 
+def cpp_mc_gbm_parallel(
+    spot: float,
+    strike: float,
+    time_to_expiry: float,
+    risk_free_rate: float,
+    dividend_yield: float,
+    volatility: float,
+    n_paths: int,
+    option_type: str,
+    seed: int,
+    threads: int,
+) -> dict:
+    if _LIB is None:
+        raise RuntimeError("C++ backend not available.")
+    price = ctypes.c_double()
+    se = ctypes.c_double()
+    _LIB.mc_gbm_parallel(
+        ctypes.c_double(float(spot)),
+        ctypes.c_double(float(strike)),
+        ctypes.c_double(float(time_to_expiry)),
+        ctypes.c_double(float(risk_free_rate)),
+        ctypes.c_double(float(dividend_yield)),
+        ctypes.c_double(float(volatility)),
+        ctypes.c_int(int(n_paths)),
+        ctypes.c_uint(int(seed)),
+        ctypes.c_int(1 if option_type == "call" else 0),
+        ctypes.c_int(int(threads)),
+        ctypes.byref(price),
+        ctypes.byref(se),
+    )
+    return {"price": float(price.value), "standard_error": float(se.value)}
+
+
 def cpp_scenario_pnl(
     spot,
     strike,
@@ -182,3 +216,50 @@ def cpp_portfolio_var(
         _ptr(contributions),
     )
     return {"var": float(var.value), "contributions": contributions}
+
+
+def cpp_surface_prices(
+    surface,
+    spot: float,
+    risk_free_rate: float,
+    dividend_yield: float = 0.0,
+    moneyness_grid=None,
+) -> dict:
+    """Reprice vanilla options from every surface node via the C++ kernel."""
+    import math
+
+    import numpy as np
+
+    if moneyness_grid is None:
+        moneyness_grid = np.linspace(-0.1, 0.1, 9)
+    rows = []
+    for point in surface.points:
+        for k in moneyness_grid:
+            iv = surface.interpolate_iv(float(k), point.time_to_expiry)
+            rows.append(
+                {
+                    "spot": spot,
+                    "strike": spot * math.exp(float(k)),
+                    "t": point.time_to_expiry,
+                    "vol": iv,
+                    "call": True,
+                }
+            )
+    frame = {
+        "spot": np.array([row["spot"] for row in rows]),
+        "strike": np.array([row["strike"] for row in rows]),
+        "t": np.array([row["t"] for row in rows]),
+        "vol": np.array([row["vol"] for row in rows]),
+        "call": np.array(["call"] * len(rows)),
+    }
+    out = cpp_batch_bs(
+        frame["spot"],
+        frame["strike"],
+        frame["t"],
+        risk_free_rate,
+        dividend_yield,
+        frame["vol"],
+        frame["call"],
+    )
+    out["surface_points"] = rows
+    return out

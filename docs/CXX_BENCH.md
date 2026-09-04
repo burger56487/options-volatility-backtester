@@ -26,6 +26,19 @@ Python 3.x 标量循环:   paths=1000000 seconds=0.606757
 `src/pricing/cpp_backend.py`（ctypes 后端切换层，含 Python 回退），
 `scripts/cpp_verify_bench.py`（批量一致性 + 计时）。
 
+## 任务 15 收尾（2026-09-04）
+
+- 批量 MC（单线程 + 4 线程并行，`mc_gbm_parallel`）；并行与单线程结果
+  在 3 个合并标准误内一致。
+- 情景重估 `scenario_pnl`：批量 spot/vol 冲击逐期权 PnL，与 Python 一致 1e-10。
+- 组合 VaR/Euler `portfolio_var`：与 Python `linear_risk_contributions`
+  一致 1e-9，贡献和 = VaR。
+- 曲面批量重定价 `cpp_surface_prices`：VolSurface 节点 → C++ 批量 BSM，
+  与 Python 逐点一致 1e-9。
+- 端到端演示 `benchmarks/cpp_backend_demo.py`：27 个曲面节点 -10% 标普/vol+5
+  冲击合计 PnL −106.32；VaR 23.26 且 Euler 贡献和等于 VaR。
+- 绑定方式：ctypes（调用时释放 GIL，无 Python 头文件依赖），替代 pybind11。
+
 ## Python 基线
 
 ```bash

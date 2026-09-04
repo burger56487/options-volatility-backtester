@@ -7,8 +7,10 @@ from src.pricing.black_scholes import option_price
 from src.pricing.cpp_backend import (
     cpp_batch_bs,
     cpp_mc_gbm,
+    cpp_mc_gbm_parallel,
     cpp_portfolio_var,
     cpp_scenario_pnl,
+    cpp_surface_prices,
     is_available,
 )
 from src.risk.contributions import linear_risk_contributions
@@ -149,3 +151,79 @@ def test_cpp_portfolio_var_matches_python_euler():
     assert np.allclose(
         cpp["contributions"], py["contributions"], atol=1e-9
     )
+
+
+def test_cpp_parallel_mc_matches_single_thread():
+    serial = cpp_mc_gbm(
+        spot=100.0,
+        strike=100.0,
+        time_to_expiry=0.5,
+        risk_free_rate=0.04,
+        dividend_yield=0.01,
+        volatility=0.25,
+        n_paths=200_000,
+        option_type="call",
+        seed=1,
+    )
+    parallel = cpp_mc_gbm_parallel(
+        spot=100.0,
+        strike=100.0,
+        time_to_expiry=0.5,
+        risk_free_rate=0.04,
+        dividend_yield=0.01,
+        volatility=0.25,
+        n_paths=200_000,
+        option_type="call",
+        seed=1,
+        threads=4,
+    )
+    combined = math.sqrt(
+        serial["standard_error"] ** 2
+        + parallel["standard_error"] ** 2
+    )
+    assert abs(serial["price"] - parallel["price"]) < 3 * combined
+
+
+def test_cpp_surface_prices_match_python():
+    from datetime import date, timedelta
+
+    from src.volatility_surface.surface import SurfacePoint, VolSurface
+
+    as_of = date(2026, 9, 4)
+    surface = VolSurface(
+        as_of=as_of,
+        source="test",
+        points=[
+            SurfacePoint(
+                expiry=as_of + timedelta(days=d),
+                time_to_expiry=d / 365,
+                parameters={
+                    "a": 0.03,
+                    "b": 0.1,
+                    "rho": -0.2,
+                    "m": 0.0,
+                    "sigma": 0.1,
+                },
+            )
+            for d in (30, 60)
+        ],
+    )
+    out = cpp_surface_prices(
+        surface,
+        spot=100.0,
+        risk_free_rate=0.04,
+        moneyness_grid=[-0.05, 0.0, 0.05],
+    )
+    for i, row in enumerate(out["surface_points"]):
+        reference = option_price(
+            spot=row["spot"],
+            strike=row["strike"],
+            time_to_expiry=row["t"],
+            risk_free_rate=0.04,
+            volatility=surface.interpolate_iv(
+                math.log(row["strike"] / row["spot"]), row["t"]
+            ),
+            option_type="call",
+            dividend_yield=0.0,
+        )
+        assert abs(out["price"][i] - reference) < 1e-9
