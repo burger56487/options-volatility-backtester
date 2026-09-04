@@ -33,6 +33,18 @@ jobs:
           PYTHONPATH: .
         run: python -m pytest -q -m "not perf"
 
+      - name: Generate model validation report
+        env:
+          PYTHONPATH: .
+        run: python scripts/run_validation_report.py
+
+      - name: Upload validation report
+        uses: actions/upload-artifact@v4
+        with:
+          name: validation-report
+          path: outputs/testing/
+          if-no-files-found: error
+
       - name: Build C++ backend
         run: |
           g++ -shared -O2 -w -std=c++17 -pthread cpp/src/bs_kernels.cpp -o outputs/bs_kernels.so
