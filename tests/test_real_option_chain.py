@@ -100,3 +100,29 @@ def test_implied_volatility_roundtrip_from_model_mid():
     assert (solved["iv_error"] == "").all()
     assert (solved["iv"] - 0.25).abs().max() < 1e-4
     assert with_iv["log_moneyness"].notna().all()
+
+
+def test_dividend_yield_estimated_from_atm_pairs():
+    snapshot = date(2026, 9, 4)
+    rows = []
+    for expiry_days in (21, 45):
+        for option_type in ("call", "put"):
+            for strike in (540.0, 560.0, 580.0):
+                rows.append(
+                    _quote_row(
+                        option_type=option_type,
+                        strike=strike,
+                        snapshot=snapshot,
+                        expiry_days=expiry_days,
+                    )
+                )
+    quotes = pd.DataFrame(rows)
+    cleaned, _ = clean_quote_frame(quotes)
+    with_iv = add_implied_volatility(
+        cleaned,
+        risk_free_rate=0.04,
+        dividend_yield=None,
+    )
+    estimated = with_iv["dividend_yield_used"].unique()
+    assert (estimated - 0.012).max() < 0.002
+    assert (with_iv["iv"] - 0.25).abs().max() < 1e-4

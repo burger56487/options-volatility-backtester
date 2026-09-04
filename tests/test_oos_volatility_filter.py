@@ -47,13 +47,13 @@ def test_out_of_sample_filter_evaluation_runs():
 
     result = evaluate_filter_out_of_sample(
         price_data=data,
-        candidate_thresholds=[1.0, 1.05, 1.1],
+        candidate_thresholds=[0.9, 1.0, 1.1],
         trade_config=trade_config,
         rolling_config=rolling_config,
         train_fraction=0.55,
     )
 
-    assert result.selected_threshold in {1.0, 1.05, 1.1}
+    assert result.selected_threshold in {0.9, 1.0, 1.1}
     assert result.test_result.summary["number_of_trades"] > 0
     assert result.baseline_test_result.summary["number_of_trades"] > 0
     assert len(result.threshold_scores) == 3

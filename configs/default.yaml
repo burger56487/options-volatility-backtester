@@ -64,6 +64,7 @@ evaluation:
   scheme: fixed_time_split
   lag_regime_signal: true
   minimum_validation_trades: 3
+  minimum_metrics_trades: 5
   test_set_locked: true
   allow_test_parameter_selection: false
 

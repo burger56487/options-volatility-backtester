@@ -189,7 +189,7 @@ def run_rolling_long_straddle_backtest(
         VolatilitySurfaceParameters()
     ),
     regime_filter: VolatilityRegimeFilter | None = None,
-    lag_regime_signal: bool = False,
+    lag_regime_signal: bool = True,
 ) -> RollingBacktestResult:
     """
     Run a sequence of non-overlapping delta-hedged long-straddle backtests.

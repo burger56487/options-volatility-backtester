@@ -97,7 +97,8 @@ def main() -> None:
     parser.add_argument(
         "--dividend-yield",
         type=float,
-        default=0.012,
+        default=None,
+        help="Override dividend yield; default estimates it from the chain.",
     )
     args = parser.parse_args()
 

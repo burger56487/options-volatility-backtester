@@ -66,6 +66,7 @@ def boundary_crossing_trades(
 def split_metrics(
     trades: pd.DataFrame,
     trades_per_year: float,
+    minimum_trades: int = 5,
 ) -> dict[str, float]:
     if trades.empty:
         return {
@@ -74,6 +75,7 @@ def split_metrics(
             "mean_trade_return": 0.0,
             "annualized_sharpe_estimate": 0.0,
             "selection_score": float("-inf"),
+            "insufficient_sample": True,
         }
     count = len(trades)
     returns = trades["trade_return"]
@@ -86,6 +88,7 @@ def split_metrics(
     )
     max_drawdown = abs(float(trades["max_drawdown"].min()))
     turnover = float(trades["hedge_turnover_ratio"].mean())
+    insufficient = count < minimum_trades
     return {
         "trade_count": float(count),
         "total_pnl": float(trades["final_pnl"].sum()),
@@ -96,7 +99,10 @@ def split_metrics(
             max_drawdown=max_drawdown,
             turnover=turnover,
             trade_count=count,
-        ),
+        )
+        if not insufficient
+        else float("-inf"),
+        "insufficient_sample": insufficient,
     }
 
 
@@ -109,6 +115,7 @@ def run_strict_evaluation(
     trade_config: LongStraddleBacktestConfig,
     rolling_config: RollingBacktestConfig,
     minimum_validation_trades: int = 6,
+    minimum_metrics_trades: int = 5,
     lag_regime_signal: bool = True,
     test_lock_path: str | Path = "evaluation/test_evaluation_log.json",
     allow_test_repeat: bool = False,
@@ -147,10 +154,15 @@ def run_strict_evaluation(
         validation_trades = labelled[
             labelled["split_name"] == "validation"
         ]
-        train_metrics = split_metrics(train_trades, trades_per_year)
+        train_metrics = split_metrics(
+            train_trades,
+            trades_per_year,
+            minimum_trades=minimum_metrics_trades,
+        )
         validation_metrics = split_metrics(
             validation_trades,
             trades_per_year,
+            minimum_trades=minimum_metrics_trades,
         )
         row = {
             "minimum_volatility_ratio": threshold,
@@ -224,7 +236,11 @@ def run_strict_evaluation(
     test_trades = test_labelled[
         test_labelled["split_name"] == "test"
     ]
-    test_metrics = split_metrics(test_trades, trades_per_year)
+    test_metrics = split_metrics(
+        test_trades,
+        trades_per_year,
+        minimum_trades=minimum_metrics_trades,
+    )
 
     record_test_evaluation(
         lock_file=test_lock_path,

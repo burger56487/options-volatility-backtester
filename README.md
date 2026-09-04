@@ -511,6 +511,20 @@ or sell securities, or a recommendation to use any trading strategy.
 佣金/滑点/市场冲击定价（实际成交价口径，成本只作归因字段）、陈旧报价拒绝、
 限价单不可成交取消、受流动性约束的部分成交，以及执行质量指标与成交明细 CSV。
 
+## 模块集成状态 (INTEGRATION STATUS)
+
+| 模块 | 是否被主回测流程调用 | 状态 |
+|---|---|---|
+| `src/market_data/real_option_chain.py` | 否（独立快照分析） | 已测试，待接入统一数据层 |
+| `src/market_data/pipeline.py` | 演示脚本调用 | 真实历史行情尚未转统一 schema 走管道 |
+| `src/features/` `src/evaluation/` | strict runner 调用 | 已接入样本外评估 |
+| `src/portfolio/` `src/risk/` `src/execution/` | **否（独立演示组件）** | 账户/风控/执行引擎尚未驱动主回测 |
+| `src/backtest/rolling_backtest.py` | 主回测入口 | 仍为老 close-to-close 路径，默认单笔固定合约 |
+
+重要：`run_rolling_long_straddle_backtest`（老回测）目前**没有**接入账户、
+执行引擎与交易前风控，其权益是"逐笔 PnL 累加到示例资本"的简化口径，不构成
+组合级账户净值。两者合并是下一阶段的核心工作。
+
 ## STATISTICAL VALIDATION AND P&L ATTRIBUTION
 
 The rolling backtest summary now reports:

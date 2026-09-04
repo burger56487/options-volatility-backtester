@@ -286,15 +286,31 @@ def clean_quote_frame(
 def add_implied_volatility(
     quotes: pd.DataFrame,
     risk_free_rate: float = 0.04,
-    dividend_yield: float = 0.012,
+    dividend_yield: float | None = None,
 ) -> pd.DataFrame:
     """Add time, forward, log-moneyness and Black-Scholes implied volatility."""
     frame = quotes.copy()
     days = (frame["expiry"] - frame["snapshot_date"]).dt.days
     frame["time_to_expiry_days"] = days.astype(float)
     frame["time_to_expiry"] = days / 365.0
+
+    if dividend_yield is None:
+        dividend_yield, _ = estimate_per_expiry_dividend_yields(
+            quotes=frame,
+            risk_free_rate=risk_free_rate,
+        )
+
+    def _per_row_dividend(expiry) -> float:
+        if isinstance(dividend_yield, dict):
+            return dividend_yield.get(expiry, 0.012)
+        return float(dividend_yield)
+
+    frame["dividend_yield_used"] = frame["expiry"].apply(
+        _per_row_dividend
+    )
     frame["forward"] = frame["spot"] * (
-        (risk_free_rate - dividend_yield) * frame["time_to_expiry"]
+        (risk_free_rate - frame["dividend_yield_used"])
+        * frame["time_to_expiry"]
     ).apply(math.exp)
     frame["log_moneyness"] = (
         frame["strike"] / frame["forward"]
@@ -308,7 +324,7 @@ def add_implied_volatility(
     upper_bounds = []
     for _, row in frame.iterrows():
         discounted_spot = row["spot"] * math.exp(
-            -dividend_yield * row["time_to_expiry"]
+            -row["dividend_yield_used"] * row["time_to_expiry"]
         )
         discounted_strike = row["strike"] * math.exp(
             -risk_free_rate * row["time_to_expiry"]
@@ -346,9 +362,60 @@ def add_implied_volatility(
                 time_to_expiry=float(row["time_to_expiry"]),
                 risk_free_rate=risk_free_rate,
                 option_type=row["option_type"],
-                dividend_yield=dividend_yield,
+                dividend_yield=float(row["dividend_yield_used"]),
             )
         except Exception as exc:  # noqa: BLE001 - record, do not fail the batch
             frame.at[index, "iv_error"] = str(exc)
 
     return frame
+
+
+def estimate_per_expiry_dividend_yields(
+    quotes: pd.DataFrame,
+    risk_free_rate: float,
+    fallback: float = 0.012,
+) -> tuple[dict, int]:
+    """Estimate per-expiry dividend yield from near-ATM put-call pairs.
+
+    F = K + (C - P) * exp(rT), then q = r - log(F/S)/T. American-style
+    early-exercise premiums make this an approximation; the nearest-to-ATM
+    pair per expiry is used to limit the distortion.
+    """
+    frame = quotes.copy()
+    frame["mid"] = 0.5 * (frame["bid"] + frame["ask"])
+    estimates: dict = {}
+    estimated = 0
+
+    for expiry, group in frame.groupby("expiry"):
+        spot = float(group["spot"].iloc[0])
+        time_to_expiry = float(group["time_to_expiry"].iloc[0])
+        best = None
+        for strike, strike_group in group.groupby("strike"):
+            calls = strike_group[
+                strike_group["option_type"] == "call"
+            ]
+            puts = strike_group[
+                strike_group["option_type"] == "put"
+            ]
+            if calls.empty or puts.empty or time_to_expiry <= 0:
+                continue
+            call_mid = float(calls["mid"].iloc[0])
+            put_mid = float(puts["mid"].iloc[0])
+            forward = float(strike) + (
+                call_mid - put_mid
+            ) * math.exp(risk_free_rate * time_to_expiry)
+            if forward <= 0 or spot <= 0:
+                continue
+            dividend = risk_free_rate - (
+                math.log(forward / spot) / time_to_expiry
+            )
+            distance = abs(float(strike) - spot)
+            if best is None or distance < best[0]:
+                best = (distance, dividend)
+        if best is not None:
+            estimates[expiry] = best[1]
+            estimated += 1
+
+    for expiry in frame["expiry"].unique():
+        estimates.setdefault(expiry, fallback)
+    return estimates, estimated
