@@ -32,6 +32,13 @@ execution:
   slippage_enabled: true
   market_impact_enabled: false
   partial_fill_enabled: false
+  slippage_bps: 1.0
+  impact_coefficient: 0.0
+  impact_exponent: 0.5
+  max_quote_age_seconds: 60.0
+  commission_per_share: 0.005
+  commission_per_contract: 0.65
+  commission_minimum: 1.0
 
 research:
   evaluation_mode: in_sample

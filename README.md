@@ -507,6 +507,10 @@ or sell securities, or a recommendation to use any trading strategy.
 与二分搜索最大可执行数量。保证金模型属于研究性近似，不代表交易所、清算机构或
 经纪商的实际规则。
 
+`src/execution/` 提供统一执行引擎：盘口快照（orderbook 或 mid-only 模式）、
+佣金/滑点/市场冲击定价（实际成交价口径，成本只作归因字段）、陈旧报价拒绝、
+限价单不可成交取消、受流动性约束的部分成交，以及执行质量指标与成交明细 CSV。
+
 ## STATISTICAL VALIDATION AND P&L ATTRIBUTION
 
 The rolling backtest summary now reports:
