@@ -572,3 +572,84 @@ def save_account_hedge_result(
     ) as file:
         json.dump(summary, file, ensure_ascii=False, indent=2)
     return output_path
+
+
+def run_rolling_account_straddle_backtest(
+    price_data: pd.DataFrame,
+    config: AccountHedgeConfig = AccountHedgeConfig(),
+    entry_spacing: int = 30,
+    minimum_history: int = 252,
+) -> dict:
+    """Roll non-overlapping straddle trades through the account engine.
+
+    Each trade is its own account with the same initial capital (illustrative
+    compounding, consistent with the legacy design), and every trade must
+    pass the PnL-bridge reconciliation.
+    """
+    data = price_data.sort_index()
+    if entry_spacing < 1:
+        raise ValueError("entry_spacing must be at least 1.")
+    last_entry = len(data) - config.expiry_days - 1
+    if last_entry <= minimum_history:
+        raise ValueError("Insufficient data for rolling account backtest.")
+
+    rows = []
+    capital = config.initial_capital
+    for index in range(minimum_history, last_entry + 1, entry_spacing):
+        entry_date = data.index[index]
+        trade = run_account_straddle_backtest(
+            price_data=data,
+            entry_date=entry_date,
+            config=config,
+        )
+        pnl = trade["total_pnl"]
+        capital += pnl
+        rows.append(
+            {
+                "entry_date": entry_date,
+                "final_pnl": pnl,
+                "final_equity": trade["final_equity"],
+                "reconciliation_passed": trade[
+                    "reconciliation_passed"
+                ],
+                "reconciliation_difference": trade[
+                    "reconciliation_difference"
+                ],
+                "capital_after_trade": capital,
+            }
+        )
+
+    trade_results = pd.DataFrame(rows)
+    trade_results["entry_date"] = pd.to_datetime(
+        trade_results["entry_date"]
+    )
+    equity_curve = trade_results[
+        ["entry_date", "final_pnl", "capital_after_trade"]
+    ].rename(
+        columns={
+            "entry_date": "date",
+            "capital_after_trade": "equity",
+        }
+    )
+    equity_curve = equity_curve.set_index("date")
+    summary = {
+        "number_of_trades": int(len(trade_results)),
+        "total_pnl": float(trade_results["final_pnl"].sum()),
+        "reconciliation_failures": int(
+            (~trade_results["reconciliation_passed"]).sum()
+        ),
+        "total_return_on_initial_capital": float(
+            trade_results["final_pnl"].sum()
+            / config.initial_capital
+        ),
+        "max_abs_reconciliation_difference": float(
+            trade_results["reconciliation_difference"]
+            .abs()
+            .max()
+        ),
+    }
+    return {
+        "trade_results": trade_results,
+        "equity_curve": equity_curve,
+        "summary": summary,
+    }
