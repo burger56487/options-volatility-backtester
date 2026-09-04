@@ -148,11 +148,17 @@ def run_strict_evaluation(
         validation_crossing = boundary_crossing_trades(
             labelled, split.validation
         )
-        train_trades = labelled[
+        train_all = labelled[
             labelled["split_name"] == "train"
         ]
-        validation_trades = labelled[
+        validation_all = labelled[
             labelled["split_name"] == "validation"
+        ]
+        train_trades = train_all[
+            ~train_all.index.isin(train_crossing.index)
+        ]
+        validation_trades = validation_all[
+            ~validation_all.index.isin(validation_crossing.index)
         ]
         train_metrics = split_metrics(
             train_trades,
@@ -283,10 +289,7 @@ def run_strict_evaluation(
 
     trade_log = labelled_all.copy()
     trade_log["exit_crosses_split"] = trade_log.index.isin(
-        pd.concat(
-            [train_crossing, validation_crossing],
-            ignore_index=True,
-        ).index
+        pd.concat([train_crossing, validation_crossing]).index
     )
     trade_log.to_csv(output_path / "trade_log.csv", index=False)
     pd.concat(
