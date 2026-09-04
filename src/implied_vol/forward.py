@@ -376,3 +376,29 @@ def estimate_all_forwards(
     if "time_to_expiry" in frame.columns:
         frame = frame.sort_values("time_to_expiry").reset_index(drop=True)
     return frame
+
+
+def lookup_forward_params(
+    forwards: pd.DataFrame,
+    expiry,
+) -> tuple[float, float] | None:
+    """Return (F, D) for one expiry from a forwards result frame.
+
+    Handles string/Timestamp expiry mismatches and drops invalid rows.
+    """
+    frame = forwards.copy()
+    if "expiry" in frame.columns:
+        frame["expiry"] = pd.to_datetime(frame["expiry"])
+    if "valid" in frame.columns:
+        frame = frame[frame["valid"].astype(bool)]
+    rows = frame[
+        pd.to_datetime(frame["expiry"]) == pd.Timestamp(expiry)
+    ]
+    if rows.empty:
+        return None
+    row = rows.iloc[0]
+    forward = float(row["forward"])
+    discount = float(row["discount_factor"])
+    if not np.isfinite(forward) or not np.isfinite(discount):
+        return None
+    return forward, discount

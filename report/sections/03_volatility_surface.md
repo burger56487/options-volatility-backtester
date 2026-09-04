@@ -72,6 +72,23 @@ IV 反解与 SVI 校准仍基于 872 条活跃报价子集。
 深度实值区报价取整、陈旧报价与派息期日历差异——这是公共延迟报价数据的
 常态，报告口径与期权经济学一致，不声称存在真实套利机会。
 
+## 3.1.4 Black-76 隐含波动率反解
+
+基于 3.1.2 的 F/D 用 Black-76 反解 IV（Newton + Brenner-Subrahmanyam
+初值，vega 过低或越界切 Brent；价格先过 F/D 无套利边界）：
+
+- mid 通过 put-call parity 统一到 OTM 侧（skew 干净），bid/ask 用合约
+  自己的报价（parity 只在 mid 级别成立，三档都做 OTM 统一会扭曲
+  买卖价差信息）；
+- 缺失的 OTM 侧由平价从对侧合成，不降级为错误方向反解；
+- 输出 `outputs/real_option_chain/spy_chain_iv.csv` 与
+  `spy_chain_iv_report.json`：930 条 quality-good 合约全部
+  `ok`，iv 范围 7.8%–43.9%，bid 档 630 条可解（其余触及内在价值，
+  属正常数据现象）；
+- 与仓库既有 BS-IV（r=4%、per-expiry ATM q≈1.2%）在同一活跃子集上
+  对照：917 个 OTM 点中位绝对差 **0.0009**、95 分位 0.0023、
+  最大 0.0035，两种路线在超短期限下互相印证。
+
 ## 3.2 SVI 校准
 
 按到期日分组，用总方差 w(k)=σ²T 做带约束 SVI 拟合，实测 RMSE：
