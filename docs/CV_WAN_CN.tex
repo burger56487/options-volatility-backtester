@@ -1,0 +1,97 @@
+\documentclass[a4paper,10pt]{ctexart}
+\usepackage[margin=0.6cm]{geometry}
+\usepackage{enumitem}
+\usepackage{titlesec}
+\usepackage[colorlinks=true,urlcolor=black,linkcolor=black]{hyperref}
+\setlist[itemize]{leftmargin=1em,itemsep=0pt,topsep=0pt,parsep=0pt,partopsep=0pt}
+\titleformat{\section}{\normalsize\bfseries}{}{0em}{}[\vspace{-0.6em}\rule{\linewidth}{0.4pt}]
+\titlespacing{\section}{0pt}{2pt}{1pt}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0pt}
+\linespread{0.95}
+\newcommand{\entry}[4]{\textbf{#1}\hfill #2\\ \textit{#3}\hfill \textit{#4}\\[-4pt]}
+\begin{document}
+\pagestyle{empty}
+\zihao{-5}
+\begin{center}
+{\LARGE\textbf{万逸文}}\\[1pt]
+英国爱丁堡 $\;|\;$ \href{mailto:s2769905\@ed.ac.uk}{s2769905\@ed.ac.uk}
+$\;|\;$ +44 7933 223904
+$\;|\;$ \href{https://github.com/burger56487}{github.com/burger56487}\\[1pt]
+\textbf{量化研究与衍生品定价 $\;|\;$ 做市与风险管理 $\;|\;$ 金融科技与 AI 工程}
+\end{center}
+
+\section{个人简介}
+2027届计算数学金融硕士，熟悉衍生品定价、随机建模、强化学习与数值优化；
+能独立完成"真实市场数据处理 → 模型定价/对冲 → 组合风险与归因"的完整研究闭环，
+并用 Python/C++/SQL 落地为可复现工程。目标岗位：衍生品量化、量化交易、
+金融科技与系统研发。
+
+\section{教育背景}
+\entry{爱丁堡大学}{英国 爱丁堡}{计算数学金融 硕士}{2025.09 -- 2026.11}
+\begin{itemize}
+\item GPA 3.6/4，专业排名前 15\%。
+\item 核心课程（成绩）：随机金融分析 74（A3）、数值概率与蒙特卡洛 77（A3）、
+Python 编程 72（A3）；另修随机控制与动态资产配置（毕业论文：连续时间强化学习）。
+\end{itemize}
+\entry{西交利物浦大学}{中国 苏州}{金融数学 学士（二等一荣誉）}{2021.09 -- 2025.07}
+\begin{itemize}
+\item GPA 3.6/4，专业排名前 15\%。
+\item 相关课程：概率论与数理统计、随机过程、时间序列分析、数值方法、C++ 程序设计。
+\end{itemize}
+
+\section{技能}
+\textbf{量化与衍生品：}Black--Scholes、CRR 二叉树、有限差分、蒙特卡洛、
+Heston/Merton/局部波动率、隐含波动率与 SVI 曲面、Greeks 与动态对冲、做市与库存风险。\\
+\textbf{建模与评估：}机器学习、强化学习、随机建模、扩展窗口验证、移动块自助、
+多重检验、VaR 回测（Kupiec/Christoffersen）、样本外隔离。\\
+\textbf{编程与工程：}Python（NumPy/pandas/SciPy）、C++、SQL/PostgreSQL、
+Git/GitHub Actions、Docker、单元测试与性能基准。\\
+\textbf{AI 应用：}DeepSeek API、提示工程、智能体工作流、AI 辅助研究与开发。
+
+\section{精选项目}
+\entry{期权定价、波动率曲面与风险验证平台}
+{\href{https://github.com/burger56487/options-volatility-backtester}{GitHub}}
+{Python、C++、SciPy、蒙特卡洛}{2026}
+\begin{itemize}
+\item 统一定价引擎（BSM/CRR/有限差分/蒙特卡洛/Heston/Merton/局部波动率）均有退化与收敛测试：
+CRR 步数 100→800 误差 0.017→0.002；Merton 蒙特卡洛 20 万路径对级数解误差 0.001。
+\item 接入真实 SPY 期权快照（2026-09-04）：6 个到期日、1500 条报价清洗后 872 条活跃、
+864 条反解隐含波动率；ATM 隐含波动率随期限由 9.3\% 升至 11.0\%，单到期 SVI 校准
+总方差 RMSE 2.07e-4。
+\item 百万次 Black--Scholes 同机基准（-O2）：C++ 0.0149 秒 vs Python 0.6068 秒，
+加速比约 40.8 倍，两端价格一致。
+\end{itemize}
+\entry{账户、执行与风险一体化回测平台}
+{\href{https://github.com/burger56487/options-volatility-backtester}{GitHub}}
+{Python、C++、SQL}{2026}
+\begin{itemize}
+\item 将订单、成交、现金账本、执行引擎与交易前风控接入回测：真实 SPY 上 17 笔滚动跨式
+逐笔通过 PnL 桥对账（最大差异 3.5e-11），与旧路径结果等价（总 PnL −8038.77 vs −8038.86）。
+\item 严格时间线（信号滞后一日）+ 训练/验证/测试隔离：4 组候选阈值验证段选出 1.10，
+2025 测试段 5 笔交易、年化 Sharpe 1.28、PnL +1731.79（样本小，如实标注）。
+\item VaR 回测（SPY 日收益，1194 天）：实际例外 87 vs 期望 59.7，
+Kupiec p=0.0007（覆盖被拒绝），Christoffersen 独立性 p=0.78。
+\end{itemize}
+\entry{连续时间强化学习做市策略（硕士论文）}
+{Python、强化学习、随机分析}{做市、库存风险、算法设计}{2026}
+\begin{itemize}
+\item 将高频做市建模为连续时间强度控制问题，提出事件驱动 Actor--Critic 算法，
+在未知订单强度与成交概率下达到动态规划最优基准的 98.87\%。
+\item 强库存厌恶下较短视基准提升 17.29 个百分点，自主习得库存偏斜对冲规则；
+完成 10,000 路径、多随机种子与置信区间评估，统计量池化使收敛数据需求减少约 60\%。
+\end{itemize}
+\entry{多语言量化数据与回测平台}
+{\href{https://github.com/burger56487/quant-platform}{GitHub}}
+{Python、C++、SQL、Docker、GitHub Actions}{2026}
+\begin{itemize}
+\item 行情管道（akshare/yfinance/合成）写入 PostgreSQL + TimescaleDB；
+SMA/EMA/RSI（C++ 加速）与多策略回测 CLI，手续费/滑点成本模型，CI 可复现。
+\end{itemize}
+
+\section{荣誉与其他}
+\begin{itemize}
+\item 本科获二等一荣誉学位；两次专业排名均前 15\%。
+\item 硕士论文获动态规划基准 98.87\% 一致验证；主动探索 AI 工具在量化研究中的落地。
+\end{itemize}
+\end{document}
