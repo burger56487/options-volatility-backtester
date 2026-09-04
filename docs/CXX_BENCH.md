@@ -11,6 +11,17 @@ Python 3.x 标量循环:   paths=1000000 seconds=0.606757
 
 编译器：Zig 0.16.0（自带 clang/LLVM，-O2 -std=c++17）。
 
+## 批量内核基准（2026-09-04，outputs/cpp_evidence.json）
+
+- 批量 BSM 价格+Greeks（20 万笔，同一随机样本，单线程）：
+  C++ 0.024s vs Python 111.5s，**加速约 4680×**；
+  价格/Greeks 与 Python 最大绝对差 ~1e-13（机器精度级）。
+- 批量隐含波动率反解（3000 笔，±15% 价内，牛顿+二分，tol=1e-8）：
+  C++ 0.012s vs Python 6.88s，**加速约 557×**；最大绝对差 8e-7，0 失败。
+
+实现：`cpp/src/bs_kernels.cpp`（extern "C" 批量 BSM/Greeks/IV），
+`scripts/cpp_verify_bench.py`（ctypes 加载 + 一致性 + 计时）。
+
 ## Python 基线
 
 ```bash
