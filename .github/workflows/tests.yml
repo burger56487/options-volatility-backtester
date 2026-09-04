@@ -31,4 +31,16 @@ jobs:
       - name: Run tests
         env:
           PYTHONPATH: .
-        run: python -m pytest -q
+        run: python -m pytest -q -m "not perf"
+
+      - name: Build C++ backend
+        run: |
+          g++ -shared -O2 -w -std=c++17 -pthread cpp/src/bs_kernels.cpp -o outputs/bs_kernels.so
+
+      - name: Run C++ backend tests
+        env:
+          PYTHONPATH: .
+        run: python -m pytest -q tests/pricing/test_cpp_backend.py -m cpp
+
+      - name: Ruff error-level checks
+        run: python -m ruff check src tests --output-format concise

@@ -1,8 +1,9 @@
 """Optional C++ backend switch for batch pricing and Monte Carlo.
 
-Loads ``outputs/bs_kernels.dll`` (built from ``cpp/src/bs_kernels.cpp`` with
-zig or any C++ compiler). If unavailable, functions fall back to Python so the
-rest of the project keeps working.
+Loads ``outputs/bs_kernels.dll`` on Windows or ``outputs/bs_kernels.so`` on
+Linux (built from ``cpp/src/bs_kernels.cpp`` with zig or any C++ compiler).
+If unavailable, functions fall back to Python so the rest of the project
+keeps working.
 """
 
 from __future__ import annotations
@@ -15,13 +16,12 @@ import numpy as np
 
 
 def _locate_library() -> Path | None:
-    candidates = [
-        Path("outputs/bs_kernels.dll"),
-        Path(__file__).resolve().parents[2] / "outputs/bs_kernels.dll",
-    ]
-    for path in candidates:
-        if path.exists():
-            return path
+    root = Path(__file__).resolve().parents[2]
+    for name in ("bs_kernels.dll", "bs_kernels.so"):
+        for base in (Path("outputs"), root / "outputs"):
+            path = base / name
+            if path.exists():
+                return path
     return None
 
 

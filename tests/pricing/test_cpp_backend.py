@@ -17,10 +17,13 @@ from src.risk.contributions import linear_risk_contributions
 from src.stochastic.processes import simulate_gbm_terminal
 
 
-pytestmark = pytest.mark.skipif(
-    not is_available(),
-    reason="C++ backend DLL not built",
-)
+pytestmark = [
+    pytest.mark.cpp,
+    pytest.mark.skipif(
+        not is_available(),
+        reason="C++ backend not built",
+    ),
+]
 
 
 def test_cpp_batch_bs_matches_python():
