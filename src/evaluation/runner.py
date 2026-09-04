@@ -211,6 +211,8 @@ def run_strict_evaluation(
         validation_crossing,
     ) = best
 
+    n_trials = len(candidate_thresholds)
+    bonferroni_alpha = 0.05 / max(n_trials, 1)
     selection_report = pd.DataFrame(selection_rows)
     selection_report.to_csv(
         output_path / "parameter_selection.csv",
@@ -300,7 +302,15 @@ def run_strict_evaluation(
         encoding="utf-8",
     ) as file:
         json.dump(
-            {"minimum_volatility_ratio": selected_threshold},
+            {
+                "minimum_volatility_ratio": selected_threshold,
+                "n_parameter_trials": n_trials,
+                "bonferroni_alpha_0_05": bonferroni_alpha,
+                "selection_basis": (
+                    "validation_score with drawdown/turnover/"
+                    "small-sample penalties; test set untouched"
+                ),
+            },
             file,
             ensure_ascii=False,
             indent=2,
@@ -314,10 +324,16 @@ def run_strict_evaluation(
             "w",
             encoding="utf-8",
         ) as file:
-            json.dump(metrics, file, ensure_ascii=False, indent=2)
+            payload = dict(metrics)
+            if name == "test":
+                payload["parameter_trials"] = n_trials
+                payload["bonferroni_alpha_0_05"] = bonferroni_alpha
+            json.dump(payload, file, ensure_ascii=False, indent=2)
 
     return {
         "selected_threshold": selected_threshold,
         "test_metrics": test_metrics,
+        "n_parameter_trials": n_trials,
+        "bonferroni_alpha_0_05": bonferroni_alpha,
         "output_directory": str(output_path),
     }
