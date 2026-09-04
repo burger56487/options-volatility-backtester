@@ -7,6 +7,7 @@
 
 #include <cmath>
 #include <cstddef>
+#include <random>
 
 static const double PI = 3.14159265358979323846;
 
@@ -117,6 +118,36 @@ EXPORT int batch_iv(
     ++solved;
   }
   return solved;
+}
+
+EXPORT void mc_gbm(
+    double spot, double strike, double T, double r, double q, double sigma,
+    int n_paths, unsigned seed, int call, double *out_price, double *out_se) {
+  std::mt19937_64 rng(seed);
+  std::normal_distribution<double> normal(0.0, 1.0);
+  const double drift =
+      (r - q - 0.5 * sigma * sigma) * T;
+  const double diffusion = sigma * std::sqrt(T);
+  const double discount = std::exp(-r * T);
+  double sum = 0.0;
+  double sum_sq = 0.0;
+  for (int i = 0; i < n_paths; ++i) {
+    const double terminal =
+        spot * std::exp(drift + diffusion * normal(rng));
+    double payoff = 0.0;
+    if (call)
+      payoff = terminal > strike ? terminal - strike : 0.0;
+    else
+      payoff = strike > terminal ? strike - terminal : 0.0;
+    const double pnl = discount * payoff;
+    sum += pnl;
+    sum_sq += pnl * pnl;
+  }
+  const double mean = sum / n_paths;
+  const double variance =
+      (sum_sq - n_paths * mean * mean) / (n_paths - 1.0);
+  *out_price = mean;
+  *out_se = std::sqrt(variance / n_paths);
 }
 
 }  // extern "C"

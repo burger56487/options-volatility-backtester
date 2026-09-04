@@ -1,0 +1,96 @@
+import math
+
+import numpy as np
+import pytest
+
+from src.pricing.black_scholes import option_price
+from src.pricing.cpp_backend import (
+    cpp_batch_bs,
+    cpp_mc_gbm,
+    is_available,
+)
+from src.stochastic.processes import simulate_gbm_terminal
+
+
+pytestmark = pytest.mark.skipif(
+    not is_available(),
+    reason="C++ backend DLL not built",
+)
+
+
+def test_cpp_batch_bs_matches_python():
+    spot = np.array([100.0, 90.0, 110.0])
+    strike = np.array([100.0, 95.0, 105.0])
+    t = np.array([0.5, 1.0, 0.25])
+    vol = np.array([0.2, 0.3, 0.25])
+    option_type = np.array(["call", "put", "call"])
+    out = cpp_batch_bs(
+        spot, strike, t, 0.04, 0.01, vol, option_type
+    )
+    for i in range(3):
+        reference = option_price(
+            spot=float(spot[i]),
+            strike=float(strike[i]),
+            time_to_expiry=float(t[i]),
+            risk_free_rate=0.04,
+            volatility=float(vol[i]),
+            option_type=str(option_type[i]),
+            dividend_yield=0.01,
+        )
+        assert abs(out["price"][i] - reference) < 1e-10
+
+
+def test_cpp_mc_overlaps_python_mc_ci():
+    params = dict(
+        spot=100.0,
+        strike=100.0,
+        time_to_expiry=0.5,
+        risk_free_rate=0.04,
+        dividend_yield=0.01,
+        volatility=0.25,
+    )
+    cpp = cpp_mc_gbm(
+        **params,
+        n_paths=200_000,
+        option_type="call",
+        seed=1,
+    )
+    reference = option_price(
+        spot=100.0,
+        strike=100.0,
+        time_to_expiry=0.5,
+        risk_free_rate=0.04,
+        volatility=0.25,
+        option_type="call",
+        dividend_yield=0.01,
+    )
+    assert abs(cpp["price"] - reference) < 3 * cpp["standard_error"]
+
+
+def test_cpp_mc_matches_python_path_distribution():
+    terminal = simulate_gbm_terminal(
+        spot=100.0,
+        time_to_expiry=0.5,
+        risk_free_rate=0.04,
+        volatility=0.25,
+        n_paths=200_000,
+        dividend_yield=0.01,
+        seed=2,
+    )
+    discount = math.exp(-0.04 * 0.5)
+    py_price = float(np.mean(discount * np.maximum(terminal - 100.0, 0.0)))
+    py_se = float(np.std(discount * np.maximum(terminal - 100.0, 0.0), ddof=1) / math.sqrt(len(terminal)))
+    cpp = cpp_mc_gbm(
+        spot=100.0,
+        strike=100.0,
+        time_to_expiry=0.5,
+        risk_free_rate=0.04,
+        dividend_yield=0.01,
+        volatility=0.25,
+        n_paths=200_000,
+        option_type="call",
+        seed=2,
+    )
+    # Different RNGs: both estimates should be within a few combined SEs.
+    combined_se = math.sqrt(py_se**2 + cpp["standard_error"] ** 2)
+    assert abs(py_price - cpp["price"]) < 3 * combined_se

@@ -18,9 +18,13 @@ Python 3.x 标量循环:   paths=1000000 seconds=0.606757
   价格/Greeks 与 Python 最大绝对差 ~1e-13（机器精度级）。
 - 批量隐含波动率反解（3000 笔，±15% 价内，牛顿+二分，tol=1e-8）：
   C++ 0.012s vs Python 6.88s，**加速约 557×**；最大绝对差 8e-7，0 失败。
+- 批量蒙特卡洛（100 万路径，单线程 GBM）：C++ 0.040s vs numpy 向量化
+  Python 0.065s，加速约 1.6×；两者价格差约 2 个标准误以内
+  （numpy 基线已是向量化实现，加速空间在并行与批量场景）。
 
 实现：`cpp/src/bs_kernels.cpp`（extern "C" 批量 BSM/Greeks/IV），
-`scripts/cpp_verify_bench.py`（ctypes 加载 + 一致性 + 计时）。
+`src/pricing/cpp_backend.py`（ctypes 后端切换层，含 Python 回退），
+`scripts/cpp_verify_bench.py`（批量一致性 + 计时）。
 
 ## Python 基线
 
