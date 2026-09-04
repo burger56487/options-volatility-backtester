@@ -172,6 +172,7 @@ def _risk_summary(
         "mean_trade_return": mean_return,
         "trade_return_volatility": volatility,
         "sharpe_like_ratio": sharpe_like_ratio,
+        "legacy_sharpe_like_ratio": sharpe_like_ratio,
         "var": var,
         "expected_shortfall": expected_shortfall,
     }
