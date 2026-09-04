@@ -150,4 +150,40 @@ EXPORT void mc_gbm(
   *out_se = std::sqrt(variance / n_paths);
 }
 
+EXPORT void scenario_pnl(
+    const double *spot, const double *strike, const double *t,
+    const double *r, const double *q, const double *vol, const int *call,
+    std::size_t n, double spot_shock, double vol_shock, double *out_pnl) {
+  for (std::size_t i = 0; i < n; ++i) {
+    double base = bs_price_only(spot[i], strike[i], t[i], r[i], q[i],
+                                vol[i], call[i]);
+    double shocked = bs_price_only(
+        spot[i] * (1.0 + spot_shock), strike[i], t[i], r[i], q[i],
+        std::max(vol[i] + vol_shock, 1e-6), call[i]);
+    out_pnl[i] = shocked - base;
+  }
+}
+
+EXPORT void portfolio_var(
+    const double *exposure, const double *covariance, std::size_t n,
+    double z_score, double *out_var, double *out_contributions) {
+  double variance = 0.0;
+  for (std::size_t i = 0; i < n; ++i) {
+    for (std::size_t j = 0; j < n; ++j) {
+      variance += exposure[i] * covariance[i * n + j] * exposure[j];
+    }
+  }
+  const double var = z_score * std::sqrt(variance);
+  for (std::size_t i = 0; i < n; ++i) {
+    double gradient = 0.0;
+    for (std::size_t j = 0; j < n; ++j) {
+      gradient += covariance[i * n + j] * exposure[j];
+    }
+    out_contributions[i] =
+        variance > 0.0 ? exposure[i] * gradient / std::sqrt(variance) * z_score
+                       : 0.0;
+  }
+  *out_var = var;
+}
+
 }  // extern "C"

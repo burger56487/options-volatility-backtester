@@ -32,6 +32,8 @@ if _locate_library() is not None:
         _LIB.batch_bs.restype = None
         _LIB.mc_gbm.restype = None
         _LIB.batch_iv.restype = ctypes.c_int
+        _LIB.scenario_pnl.restype = None
+        _LIB.portfolio_var.restype = None
     except OSError:
         _LIB = None
 
@@ -123,3 +125,60 @@ def cpp_mc_gbm(
         ctypes.byref(se),
     )
     return {"price": float(price.value), "standard_error": float(se.value)}
+
+
+def cpp_scenario_pnl(
+    spot,
+    strike,
+    time_to_expiry,
+    risk_free_rate,
+    dividend_yield,
+    volatility,
+    option_type,
+    spot_shock: float,
+    vol_shock: float,
+) -> np.ndarray:
+    """Per-option PnL under a spot/vol shock scenario."""
+    if _LIB is None:
+        raise RuntimeError("C++ backend not available.")
+    n = len(spot)
+    call = (np.asarray(option_type) == "call").astype(np.int32)
+    out = np.zeros(n)
+    _LIB.scenario_pnl(
+        _ptr(np.asarray(spot, dtype=float)),
+        _ptr(np.asarray(strike, dtype=float)),
+        _ptr(np.asarray(time_to_expiry, dtype=float)),
+        _ptr(np.full(n, float(risk_free_rate))),
+        _ptr(np.full(n, float(dividend_yield))),
+        _ptr(np.asarray(volatility, dtype=float)),
+        call.ctypes.data_as(ctypes.POINTER(ctypes.c_int)),
+        n,
+        ctypes.c_double(float(spot_shock)),
+        ctypes.c_double(float(vol_shock)),
+        _ptr(out),
+    )
+    return out
+
+
+def cpp_portfolio_var(
+    exposures: np.ndarray,
+    covariance: np.ndarray,
+    z_score: float = 1.645,
+) -> dict:
+    """Portfolio VaR and Euler contributions computed in C++."""
+    if _LIB is None:
+        raise RuntimeError("C++ backend not available.")
+    exposures = np.asarray(exposures, dtype=float)
+    covariance = np.asarray(covariance, dtype=float)
+    n = len(exposures)
+    var = ctypes.c_double()
+    contributions = np.zeros(n)
+    _LIB.portfolio_var(
+        _ptr(exposures),
+        _ptr(covariance),
+        n,
+        ctypes.c_double(float(z_score)),
+        ctypes.byref(var),
+        _ptr(contributions),
+    )
+    return {"var": float(var.value), "contributions": contributions}

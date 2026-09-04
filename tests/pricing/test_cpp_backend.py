@@ -7,8 +7,11 @@ from src.pricing.black_scholes import option_price
 from src.pricing.cpp_backend import (
     cpp_batch_bs,
     cpp_mc_gbm,
+    cpp_portfolio_var,
+    cpp_scenario_pnl,
     is_available,
 )
+from src.risk.contributions import linear_risk_contributions
 from src.stochastic.processes import simulate_gbm_terminal
 
 
@@ -94,3 +97,55 @@ def test_cpp_mc_matches_python_path_distribution():
     # Different RNGs: both estimates should be within a few combined SEs.
     combined_se = math.sqrt(py_se**2 + cpp["standard_error"] ** 2)
     assert abs(py_price - cpp["price"]) < 3 * combined_se
+
+
+def test_cpp_scenario_pnl_matches_python():
+    spot = np.array([100.0, 90.0, 110.0])
+    strike = np.array([100.0, 95.0, 105.0])
+    t = np.array([0.5, 1.0, 0.25])
+    vol = np.array([0.2, 0.3, 0.25])
+    option_type = np.array(["call", "put", "call"])
+    cpp_pnl = cpp_scenario_pnl(
+        spot,
+        strike,
+        t,
+        0.04,
+        0.01,
+        vol,
+        option_type,
+        spot_shock=-0.1,
+        vol_shock=0.05,
+    )
+    for i in range(3):
+        base = option_price(
+            spot=float(spot[i]),
+            strike=float(strike[i]),
+            time_to_expiry=float(t[i]),
+            risk_free_rate=0.04,
+            volatility=float(vol[i]),
+            option_type=str(option_type[i]),
+            dividend_yield=0.01,
+        )
+        shocked = option_price(
+            spot=float(spot[i]) * 0.9,
+            strike=float(strike[i]),
+            time_to_expiry=float(t[i]),
+            risk_free_rate=0.04,
+            volatility=float(vol[i]) + 0.05,
+            option_type=str(option_type[i]),
+            dividend_yield=0.01,
+        )
+        assert abs(cpp_pnl[i] - (shocked - base)) < 1e-10
+
+
+def test_cpp_portfolio_var_matches_python_euler():
+    exposures = np.array([100.0, -50.0])
+    covariance = np.array([[0.01, 0.0], [0.0, 0.04]])
+    cpp = cpp_portfolio_var(exposures, covariance, z_score=1.645)
+    py = linear_risk_contributions(
+        exposures, covariance, z_score=1.645
+    )
+    assert abs(cpp["var"] - py["portfolio_var"]) < 1e-9
+    assert np.allclose(
+        cpp["contributions"], py["contributions"], atol=1e-9
+    )
