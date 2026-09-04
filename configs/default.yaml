@@ -44,3 +44,11 @@ output:
   save_metadata: true
   save_config_snapshot: true
   save_git_commit: true
+
+data_quality:
+  fail_on_invalid: true
+  remove_duplicates: true
+  max_option_relative_spread: 0.50
+  arbitrage_tolerance: 1.0e-8
+  save_invalid_records: true
+  save_quality_report: true

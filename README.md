@@ -455,6 +455,26 @@ or sell securities, or a recommendation to use any trading strategy.
 报价质量过滤、隐含波动率反解、偏斜与期限结构可视化，以及后续的曲面校准与
 样本外研究，用于比较合成市场假设与真实市场特征的差异。
 
+## 数据质量管道 (DATA QUALITY PIPELINE)
+
+原始市场数据不会直接进入回测。`src/market_data/pipeline.py` 对每次输入依次执行：
+
+1. 字段与类型检查（统一 schema，`OptionType` / `DataType` 使用枚举）；
+2. 日期与数值标准化；
+3. 标的 OHLC 逻辑检查与非正价格/负成交量检查；
+4. 期权买卖报价、到期日、合约乘数检查；
+5. 相对价差检查（警告级）；
+6. 欧式期权无套利边界检查；
+7. 重复记录识别与去除；
+8. 无效记录隔离并输出具体原因（CSV）；
+9. 数据质量报告（保留率、错误/警告统计）；
+10. 输入/输出文件哈希与数据血缘记录（`data_lineage.json`）。
+
+回测入口（`scripts/run_backtest.py` 与 `scripts/run_data_pipeline.py`）先生成
+`outputs/<run_id>/market_data/` 下的验证后数据与全套报告。真实 SPY 期权为美式
+合约，当前欧式边界用于合成链（欧式 Black-Scholes 框架）；接入真实美式期权时
+需增加 `exercise_style` 处理与提前行权规则。
+
 ## STATISTICAL VALIDATION AND P&L ATTRIBUTION
 
 The rolling backtest summary now reports:

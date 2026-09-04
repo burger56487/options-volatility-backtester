@@ -1,0 +1,3 @@
+timestamp,underlying_symbol,expiry,strike,option_type,bid,ask,spot,risk_free_rate,dividend_yield,source,data_type,last,volume,open_interest,multiplier
+2026-01-02 16:00:00,SPY,2026-02-20,100,call,5.00,5.20,102,0.04,0.01,synthetic_generator,synthetic,5.10,1000,5000,100
+2026-01-02 16:00:00,SPY,2026-02-20,100,put,2.80,3.00,102,0.04,0.01,synthetic_generator,synthetic,2.90,900,4500,100
