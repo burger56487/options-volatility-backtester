@@ -1,0 +1,27 @@
+% ============================================================
+% CV 项目条目更新（替换原有"期权定价与 Delta 对冲引擎"整条）
+% 用法：把下面 \entry ... \end{itemize} 整块替换到你的简历，
+% 再删掉旧条目；GitHub 链接指向 options-volatility-backtester。
+% ============================================================
+\entry
+    {期权定价、波动率曲面与风险验证平台}
+    {\href{https://github.com/burger56487/options-volatility-backtester}{GitHub}}
+    {Python、C++、SciPy、蒙特卡洛}
+    {2026}
+
+\begin{itemize}
+    \item 统一定价引擎：Black--Scholes、CRR 二叉树、有限差分、蒙特卡洛、
+    Heston 与 Merton 跳跃扩散，全部通过退化/收敛测试（Heston 与 Merton 在
+    极限下精确回到 Black--Scholes）。
+    \item 接入真实 SPY 期权快照，完成报价清洗、欧式无套利分级、ATM 远期与
+    隐含股息估计、bid/mid/ask 三档隐含波动率，以及 SVI 曲面校准与蝶式/日历
+    静态套利检查。
+    \item 将账户、执行引擎与交易前风控接入回测：真实 SPY 上 17 笔滚动跨式
+    逐笔通过 PnL 桥对账（最大差异 3.5e-11），与 legacy 路径结果等价
+    （总 PnL −8038.77 vs −8038.86）。
+    \item 实施严格时间线（信号滞后一日）、训练/验证/测试隔离与测试集锁定；
+    输出移动块自助置信区间、多重检验修正及 Kupiec/Christoffersen VaR 回测。
+\end{itemize}
+
+% 可选替换"多语言量化分析与策略回测平台"的技术栈行：
+% {Python、C++、SQL、Docker、GitHub Actions}（保持原描述即可）
