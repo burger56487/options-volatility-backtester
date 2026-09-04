@@ -651,10 +651,3 @@ uvicorn src.api.run_server:application --reload
 
 Docker：`docker compose up --build`（api 在 8000，Streamlit 看板在 8501）。
 看板逻辑在 `scripts/dashboard.py`，UI 需在本地/容器运行验证。
-
-head -30 README.md
-tail -20 README.md
-
-git add README.md
-git commit -m "Add options backtester documentation"
-git push
