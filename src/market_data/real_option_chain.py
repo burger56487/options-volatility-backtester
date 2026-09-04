@@ -20,6 +20,7 @@ import pandas as pd
 
 from src.pricing.black_scholes import OptionType
 from src.pricing.implied_volatility import implied_volatility
+from .spread_rules import wide_spread_mask
 
 
 def normalise_option_frame(
@@ -244,6 +245,8 @@ def clean_quote_frame(
     frame["quote_valid"] = True
     frame["invalid_reason"] = ""
 
+    wide_spread = wide_spread_mask(frame["spread"], frame["mid"])
+
     rules = [
         (frame["bid"].isna() | frame["ask"].isna(), "missing_quote"),
         (frame["bid"] < 0, "negative_bid"),
@@ -251,11 +254,7 @@ def clean_quote_frame(
         (frame["ask"] < frame["bid"], "ask_below_bid"),
         (frame["mid"] <= 0, "non_positive_mid"),
         (frame["expiry"] <= frame["snapshot_date"], "expired"),
-        (
-            (frame["spread"] > 1.0)
-            & (frame["spread"] > 0.5 * frame["mid"]),
-            "wide_relative_spread",
-        ),
+        (wide_spread, "wide_relative_spread"),
         (frame["strike"] <= 0, "non_positive_strike"),
     ]
 

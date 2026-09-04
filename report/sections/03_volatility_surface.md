@@ -9,6 +9,28 @@
 - 其中成功反解隐含波动率：**734 条**（138 条反解失败，与无套利违规一致）；
 - ATM 隐含波动率随期限由约 9.3% 升至 11.0%（期限结构正常）。
 
+## 3.1.1 五类质量分级（不删数据，逐行标记）
+
+清洗流程对全部 1500 条报价逐行打质量标签（优先级从高到低：
+invalid > out_of_range > low_liquidity > wide_spread > good），
+不删除任何原始记录；完整带标签数据见
+`outputs/real_option_chain/spy_quality_graded.csv`，
+分级统计见 `outputs/real_option_chain/spy_grading_report.json`：
+
+| 质量标签 | 数量 | 占比 |
+|---|---:|---:|
+| invalid（结构无效/交叉/过期） | 0 | 0.0% |
+| out_of_range（\|log-moneyness\|>0.15） | 352 | 23.5% |
+| low_liquidity（零成交且零持仓） | 218 | 14.5% |
+| wide_spread（相对价差>0.5 且绝对价差超过 1 个 tick） | 0 | 0.0% |
+| **good（进入分析子集）** | **930** | **62.0%** |
+
+快照共 750 call / 750 put、6 个到期日。“good”与上文“活跃报价 872”
+是两个口径：活跃子集按 OI>0 且 |log-moneyness|≤0.15 选取，
+good 额外要求价差与流动性规则全部通过（宽价差规则带 1 tick 绝对下限，
+避免把 0.01 档的价外期权标记为异常）；两者用途不同，
+IV 反解与 SVI 校准仍基于 872 条活跃报价子集。
+
 ## 3.2 SVI 校准
 
 按到期日分组，用总方差 w(k)=σ²T 做带约束 SVI 拟合，实测 RMSE：

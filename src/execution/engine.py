@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timedelta
 from uuid import uuid4
 
 from src.portfolio.account import Account
@@ -104,11 +104,9 @@ class ExecutionEngine:
             multiplier=multiplier,
             schedule=self.commission_schedule,
         )
-        import datetime
-
         fill_timestamp = (
             snapshot.timestamp
-            + datetime.timedelta(seconds=latency_seconds)
+            + timedelta(seconds=latency_seconds)
         )
         fill = make_fill(
             order=order,

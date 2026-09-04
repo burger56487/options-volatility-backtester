@@ -8,6 +8,7 @@ from src.risk.backtest import (
 )
 from src.risk.contributions import linear_risk_contributions
 from src.risk.measure import (
+    delta_normal_var,
     delta_gamma_var,
     historical_var,
     liquidity_adjusted_var,
@@ -27,6 +28,36 @@ def test_delta_gamma_reduces_long_gamma_var():
         50.0, gamma=10.0, spot=100.0, daily_volatility=0.01
     )
     assert with_gamma.var < plain.var
+
+
+def test_delta_normal_uses_quantile_and_reports_es_above_var():
+    result_95 = delta_normal_var(100.0, 0.01, confidence_level=0.95)
+    result_90 = delta_normal_var(100.0, 0.01, confidence_level=0.90)
+    from scipy.stats import norm
+
+    assert result_95.var == pytest.approx(
+        100.0 * 0.01 * (-norm.ppf(0.05))
+    )
+    assert result_90.var == pytest.approx(
+        100.0 * 0.01 * (-norm.ppf(0.10))
+    )
+    assert result_95.expected_shortfall > result_95.var
+
+
+def test_delta_gamma_uses_quantile_for_any_confidence():
+    from scipy.stats import norm
+
+    result = delta_gamma_var(
+        50.0,
+        gamma=0.0,
+        spot=100.0,
+        daily_volatility=0.01,
+        confidence_level=0.90,
+    )
+    assert result.var == pytest.approx(
+        50.0 * 0.01 * (-norm.ppf(0.10))
+    )
+    assert "es_approximation" in result.params
 
 
 def test_euler_contributions_sum_to_var():

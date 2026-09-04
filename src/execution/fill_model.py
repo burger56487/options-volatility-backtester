@@ -40,6 +40,7 @@ def execution_price_for_side(
     impact_coefficient: float,
     quantity: float,
     impact_exponent: float = 0.5,
+    limit_price: float | None = None,
 ) -> ExecutionPricing:
     """Actual execution price = mid adjusted by spread, slippage, impact."""
     direction = 1.0 if side == Side.BUY else -1.0
@@ -55,6 +56,11 @@ def execution_price_for_side(
         snapshot.mid
         + direction * (half_spread + slippage_per_share + impact_per_share)
     )
+    if limit_price is not None:
+        if side == Side.BUY:
+            price = min(price, limit_price)
+        else:
+            price = max(price, limit_price)
     return ExecutionPricing(
         price=max(price, 0.0),
         half_spread=half_spread,
@@ -74,15 +80,18 @@ def make_fill(
     parameters: ExecutionParameters,
     commission: float,
 ) -> Fill:
+    # Market impact scales with traded shares/units, not with the contract
+    # count; half-spread and slippage are already per-share terms.
+    units_for_impact = quantity * multiplier
     pricing = execution_price_for_side(
         side=order.side,
         snapshot=snapshot,
         slippage_bps=parameters.slippage_bps,
         impact_coefficient=parameters.impact_coefficient,
-        quantity=quantity,
+        quantity=units_for_impact,
         impact_exponent=parameters.impact_exponent,
+        limit_price=order.limit_price,
     )
-    units = quantity * multiplier
     return Fill(
         fill_id=fill_id,
         order_id=order.order_id,
@@ -94,7 +103,7 @@ def make_fill(
         price=pricing.price,
         multiplier=multiplier,
         commission=commission,
-        spread_cost=pricing.half_spread * units,
-        slippage_cost=pricing.slippage_per_share * units,
-        market_impact_cost=pricing.impact_per_share * units,
+        spread_cost=pricing.half_spread * units_for_impact,
+        slippage_cost=pricing.slippage_per_share * units_for_impact,
+        market_impact_cost=pricing.impact_per_share * units_for_impact,
     )

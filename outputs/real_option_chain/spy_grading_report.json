@@ -1,0 +1,17 @@
+{
+  "total_contracts": 1500,
+  "by_quality": {
+    "good": 930,
+    "wide_spread": 0,
+    "low_liquidity": 218,
+    "out_of_range": 352,
+    "invalid": 0
+  },
+  "good_pct": 62.0,
+  "num_calls": 750,
+  "num_puts": 750,
+  "num_expiries": 6,
+  "source": "spy_option_chain_analysed.csv",
+  "clean_subset_rows": 930,
+  "parquet_export": "skipped: pyarrow not installed"
+}

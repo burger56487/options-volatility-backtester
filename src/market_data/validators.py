@@ -8,6 +8,10 @@ from enum import Enum
 from typing import Any
 
 from .schemas import OptionQuote, OptionType, UnderlyingBar
+from .spread_rules import (
+    DEFAULT_MAX_RELATIVE_SPREAD,
+    DEFAULT_MINIMUM_ABSOLUTE_SPREAD,
+)
 
 
 class Severity(str, Enum):
@@ -161,7 +165,8 @@ def option_no_arbitrage_bounds(
 
 def validate_option_quote(
     quote: OptionQuote,
-    max_relative_spread: float = 0.50,
+    max_relative_spread: float = DEFAULT_MAX_RELATIVE_SPREAD,
+    minimum_absolute_spread: float = DEFAULT_MINIMUM_ABSOLUTE_SPREAD,
     arbitrage_tolerance: float = 1e-8,
 ) -> ValidationResult:
     issues: list[ValidationIssue] = []
@@ -254,6 +259,7 @@ def validate_option_quote(
 
     if (
         quote.mid > 0
+        and quote.spread > minimum_absolute_spread
         and quote.relative_spread > max_relative_spread
     ):
         issues.append(

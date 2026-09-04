@@ -128,8 +128,19 @@ def decompose_iv_change(
     k = np.asarray(k_grid, dtype=float)
     before = np.asarray(iv_before, dtype=float)
     after = np.asarray(iv_after, dtype=float)
-    poly_before = np.polyfit(k, before, 2)
-    poly_after = np.polyfit(k, after, 2)
+    if k.ndim != 1 or before.ndim != 1 or after.ndim != 1:
+        raise ValueError("k_grid and IV arrays must be one-dimensional.")
+    if not (len(k) == len(before) == len(after)):
+        raise ValueError("k_grid and IV arrays must have equal length.")
+    if len(k) < 3:
+        raise ValueError("At least 3 strikes are required for quadratic fit.")
+    if not np.all(np.isfinite(k)) or not np.all(
+        np.isfinite(before)
+    ) or not np.all(np.isfinite(after)):
+        raise ValueError("k_grid and IV arrays must contain only finite values.")
+    centered_k = k - np.mean(k)
+    poly_before = np.polyfit(centered_k, before, 2)
+    poly_after = np.polyfit(centered_k, after, 2)
     return {
         "level_change": float(poly_after[2] - poly_before[2]),
         "skew_change": float(poly_after[1] - poly_before[1]),

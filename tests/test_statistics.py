@@ -1,3 +1,5 @@
+import math
+
 import numpy as np
 import pandas as pd
 
@@ -49,3 +51,15 @@ def test_intervals_contain_observed_mean():
     assert intervals["annualized_sharpe_ci_low"] <= (
         intervals["annualized_sharpe_ci_high"]
     )
+
+
+def test_intervals_flag_insufficient_sample():
+    series = pd.Series([0.01])
+    intervals = block_bootstrap_intervals(
+        series,
+        block_size=5,
+        n_samples=100,
+        seed=1,
+    )
+    assert intervals["insufficient_sample"] is True
+    assert math.isnan(intervals["annualized_sharpe_ci_low"])

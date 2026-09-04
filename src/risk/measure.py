@@ -42,12 +42,21 @@ def delta_normal_var(
     """Delta-normal VaR for one risk factor."""
     from scipy.stats import norm
 
-    z = float(-norm.ppf(1.0 - confidence_level))
-    var = abs(exposure) * daily_volatility * z
+    alpha = 1.0 - confidence_level
+    if not 0.0 < confidence_level < 1.0:
+        raise ValueError("confidence_level must lie in (0, 1).")
+    z_alpha = float(norm.ppf(alpha))
+    var = abs(exposure) * daily_volatility * (-z_alpha)
+    expected_shortfall = (
+        abs(exposure)
+        * daily_volatility
+        * float(norm.pdf(z_alpha))
+        / alpha
+    )
     return RiskMeasureResult(
         method="delta_normal",
         var=var,
-        expected_shortfall=var,
+        expected_shortfall=expected_shortfall,
         confidence_level=confidence_level,
         n_observations=0,
         params={"exposure": exposure, "daily_volatility": daily_volatility},
@@ -62,7 +71,11 @@ def delta_gamma_var(
     confidence_level: float = 0.95,
 ) -> RiskMeasureResult:
     """Delta-gamma VaR via quadratic approximation (Cornish-Fisher style)."""
-    z = 1.645 if confidence_level == 0.95 else 2.326
+    from scipy.stats import norm
+
+    if not 0.0 < confidence_level < 1.0:
+        raise ValueError("confidence_level must lie in (0, 1).")
+    z = float(-norm.ppf(1.0 - confidence_level))
     delta_term = abs(exposure) * daily_volatility * z
     gamma_term = 0.5 * gamma * (daily_volatility * spot * z) ** 2
     var = delta_term - gamma_term  # long gamma reduces VaR
@@ -77,6 +90,10 @@ def delta_gamma_var(
             "gamma": gamma,
             "spot": spot,
             "daily_volatility": daily_volatility,
+            "es_approximation": (
+                "delta_gamma ES approximated by quadratic VaR; "
+                "exact ES requires simulation"
+            ),
         },
     )
 

@@ -55,17 +55,22 @@ def sharpe_ci(
     periods_per_year: float = 252.0,
     n_samples: int = 2_000,
     seed: int | None = None,
+    risk_free_rate: float = 0.0,
 ) -> dict:
+    clean = returns.dropna()
+    n = int(clean.size)
+    block_size = min(max(block_size_heuristic(n), 1), n)
     samples = moving_block_samples(
-        returns,
+        clean,
         n_samples=n_samples,
+        block_size=block_size,
         seed=seed,
     )
     means = samples.mean(axis=1)
     stds = samples.std(axis=1, ddof=1)
     with np.errstate(divide="ignore", invalid="ignore"):
         sharpe = (
-            (means - 0.0)
+            (means - risk_free_rate / periods_per_year)
             / stds
             * math.sqrt(periods_per_year)
         )
@@ -76,5 +81,5 @@ def sharpe_ci(
         "annualized_sharpe_point": float(
             np.nanmedian(sharpe)
         ),
-        "block_size": int(len(returns) ** (1.0 / 3.0)),
+        "block_size": int(block_size),
     }

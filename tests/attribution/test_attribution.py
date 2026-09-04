@@ -60,6 +60,34 @@ def test_decompose_iv_change_separates_shape():
     assert abs(decomposition["curvature_change"] - 0.02) < 1e-9
 
 
+def test_decompose_iv_change_requires_minimum_points():
+    import numpy as np
+    import pytest
+
+    with pytest.raises(ValueError, match="At least 3 strikes"):
+        decompose_iv_change(
+            np.array([0.0, 1.0]),
+            np.array([0.2, 0.3]),
+            np.array([0.3, 0.2]),
+        )
+
+
+def test_decompose_iv_change_rejects_length_mismatch_and_nan():
+    import numpy as np
+    import pytest
+
+    k = np.linspace(-0.1, 0.1, 6)
+    before = np.full(6, 0.2)
+    with pytest.raises(ValueError, match="equal length"):
+        decompose_iv_change(k, before, np.full(5, 0.2))
+    with pytest.raises(ValueError, match="finite"):
+        decompose_iv_change(
+            k,
+            before,
+            np.array([0.2, 0.2, float("nan"), 0.2, 0.2, 0.2]),
+        )
+
+
 def test_classify_and_save(tmp_path):
     attribution = DailyAttribution(
         rows=[

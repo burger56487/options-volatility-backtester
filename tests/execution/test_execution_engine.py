@@ -1,10 +1,13 @@
 from datetime import datetime
 
+import pytest
+
 from src.execution.commission import (
     CommissionSchedule,
     commission_for,
 )
 from src.execution.engine import ExecutionEngine
+from src.execution.fill_model import ExecutionParameters
 from src.execution.market_snapshot import MarketSnapshot
 from src.execution.metrics import execution_metrics
 from src.portfolio.account import Account
@@ -93,6 +96,67 @@ def test_limit_order_cancelled_when_not_touchable():
     )
     result = engine.execute(order, _snapshot())
     assert result.status == OrderStatus.CANCELLED
+
+
+def test_marketable_buy_limit_fills_at_or_below_limit():
+    engine = ExecutionEngine()
+    order = Order(
+        order_id="o1",
+        run_id="r1",
+        timestamp=datetime(2026, 1, 2, 14, 0),
+        instrument_id=_stock_id(),
+        side=Side.BUY,
+        quantity=100,
+        order_type=OrderType.LIMIT,
+        limit_price=101.0,  # exactly the ask
+    )
+    result = engine.execute(order, _snapshot())
+    assert result.status == OrderStatus.FILLED
+    assert result.fills[0].price <= 101.0
+
+
+def test_marketable_sell_limit_fills_at_or_above_limit():
+    engine = ExecutionEngine()
+    order = Order(
+        order_id="o1",
+        run_id="r1",
+        timestamp=datetime(2026, 1, 2, 14, 0),
+        instrument_id=_stock_id(),
+        side=Side.SELL,
+        quantity=100,
+        order_type=OrderType.LIMIT,
+        limit_price=99.0,  # exactly the bid
+    )
+    result = engine.execute(order, _snapshot())
+    assert result.status == OrderStatus.FILLED
+    assert result.fills[0].price >= 99.0
+
+
+def test_market_impact_scales_with_multiplied_units():
+    engine = ExecutionEngine(
+        parameters=ExecutionParameters(
+            impact_coefficient=1e-4,
+            impact_exponent=0.5,
+        )
+    )
+    order = Order(
+        order_id="o1",
+        run_id="r1",
+        timestamp=datetime(2026, 1, 2, 14, 0),
+        instrument_id=_stock_id(),
+        side=Side.BUY,
+        quantity=1,
+    )
+    result = engine.execute(
+        order,
+        _snapshot(),
+        multiplier=100,
+    )
+    units = 100.0
+    impact_per_share = 1e-4 * units**0.5
+    assert result.fills[0].market_impact_cost == pytest.approx(
+        impact_per_share * units
+    )
 
 
 def test_execution_updates_account_and_metrics():

@@ -89,6 +89,8 @@ class VolSurface:
         time_to_expiry: float,
     ) -> float:
         """Interpolate implied vol linearly in total variance across maturities."""
+        if not math.isfinite(time_to_expiry) or time_to_expiry <= 0:
+            raise ValueError("time_to_expiry must be positive and finite.")
         points = sorted(self.points, key=lambda p: p.time_to_expiry)
         if time_to_expiry <= points[0].time_to_expiry:
             chosen = points[0]

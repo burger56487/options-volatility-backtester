@@ -43,6 +43,17 @@ def test_sharpe_ci_contains_point_estimate():
     assert point <= ci["annualized_sharpe_ci_high"]
 
 
+def test_sharpe_ci_reports_actual_block_size():
+    import math
+
+    import pandas as pd
+
+    returns = pd.Series(range(1, 31))
+    ci = sharpe_ci(returns, n_samples=50, seed=1)
+    expected = max(1, int(math.ceil(30 ** (1.0 / 3.0))))
+    assert ci["block_size"] == expected
+
+
 def test_identical_strategies_not_significantly_different():
     returns = pd.Series(np.random.default_rng(3).normal(0, 0.01, 200))
     result = paired_daily_difference_p_value(returns, returns.copy())

@@ -21,20 +21,31 @@ def check_butterfly_calls(
             "strike"
         )
         for i in range(1, len(calls) - 1):
-            up, mid, down = (
-                calls.iloc[i + 1],
-                calls.iloc[i],
+            down, mid, up = (
                 calls.iloc[i - 1],
+                calls.iloc[i],
+                calls.iloc[i + 1],
             )
-            butterfly = 0.5 * (
-                float(up["mid"]) + float(down["mid"])
-            ) - float(mid["mid"])
+            k_down = float(down["strike"])
+            k_mid = float(mid["strike"])
+            k_up = float(up["strike"])
+            if not k_down < k_mid < k_up:
+                continue
+            weight_down = (k_up - k_mid) / (k_up - k_down)
+            weight_up = (k_mid - k_down) / (k_up - k_down)
+            butterfly = (
+                weight_down * float(down["mid"])
+                + weight_up * float(up["mid"])
+                - float(mid["mid"])
+            )
             if butterfly < -tolerance:
                 rows.append(
                     {
                         "expiry": expiry,
                         "strike": mid["strike"],
                         "butterfly_value": float(butterfly),
+                        "weight_down": float(weight_down),
+                        "weight_up": float(weight_up),
                         "violation": True,
                     }
                 )

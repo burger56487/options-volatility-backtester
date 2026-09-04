@@ -54,6 +54,14 @@ def test_surface_hash_and_save(tmp_path):
     assert path.exists()
 
 
+def test_interpolate_iv_rejects_non_positive_time():
+    surface = _surface()
+    with pytest.raises(ValueError, match="positive and finite"):
+        surface.interpolate_iv(0.0, 0.0)
+    with pytest.raises(ValueError, match="positive and finite"):
+        surface.interpolate_iv(0.0, float("nan"))
+
+
 def test_surface_price_close_to_bsm_at_same_iv():
     surface = _surface()
     request = PricingRequest(

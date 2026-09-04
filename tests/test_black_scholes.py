@@ -201,6 +201,43 @@ def test_invalid_positive_inputs_raise_errors(
         option_price(**inputs)
 
 
+@pytest.mark.parametrize(
+    "parameter",
+    [
+        "spot",
+        "strike",
+        "time_to_expiry",
+        "risk_free_rate",
+        "volatility",
+        "dividend_yield",
+    ],
+)
+def test_non_finite_inputs_raise_errors(parameter: str):
+    inputs = {
+        "spot": 100.0,
+        "strike": 100.0,
+        "time_to_expiry": 1.0,
+        "risk_free_rate": 0.05,
+        "volatility": 0.20,
+        "option_type": "call",
+    }
+    inputs[parameter] = float("nan")
+    with pytest.raises(ValueError, match="must be finite"):
+        option_price(**inputs)
+
+
+def test_infinite_volatility_raises_error():
+    with pytest.raises(ValueError, match="must be finite"):
+        option_price(
+            spot=100.0,
+            strike=100.0,
+            time_to_expiry=1.0,
+            risk_free_rate=0.05,
+            volatility=float("inf"),
+            option_type="call",
+        )
+
+
 def test_invalid_option_type_raises_error():
     with pytest.raises(
         ValueError,

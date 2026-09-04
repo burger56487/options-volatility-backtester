@@ -62,15 +62,16 @@ def block_bootstrap_intervals(
 
     if n < 2:
         return {
-            "mean_trade_return_ci_low": 0.0,
-            "mean_trade_return_ci_high": 0.0,
-            "sharpe_like_ratio_ci_low": 0.0,
-            "sharpe_like_ratio_ci_high": 0.0,
-            "annualized_sharpe_estimate": 0.0,
-            "annualized_sharpe_ci_low": 0.0,
-            "annualized_sharpe_ci_high": 0.0,
+            "mean_trade_return_ci_low": float("nan"),
+            "mean_trade_return_ci_high": float("nan"),
+            "sharpe_like_ratio_ci_low": float("nan"),
+            "sharpe_like_ratio_ci_high": float("nan"),
+            "annualized_sharpe_estimate": float("nan"),
+            "annualized_sharpe_ci_low": float("nan"),
+            "annualized_sharpe_ci_high": float("nan"),
             "bootstrap_block_size": float(min(block_size, n)),
             "bootstrap_n_samples": float(n_samples),
+            "insufficient_sample": True,
         }
 
     samples = moving_block_bootstrap_samples(
@@ -119,4 +120,5 @@ def block_bootstrap_intervals(
             min(block_size, n)
         ),
         "bootstrap_n_samples": float(n_samples),
+        "insufficient_sample": False,
     }

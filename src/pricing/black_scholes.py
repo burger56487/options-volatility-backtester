@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from math import exp, log, sqrt
+from math import exp, isfinite, log, sqrt
 from typing import Literal
 
 from scipy.stats import norm
@@ -32,6 +32,19 @@ def _validate_inputs(
     option_type: OptionType,
 ) -> None:
     """Validate Black-Scholes model inputs."""
+    for name, value in {
+        "spot": spot,
+        "strike": strike,
+        "time_to_expiry": time_to_expiry,
+        "risk_free_rate": risk_free_rate,
+        "volatility": volatility,
+        "dividend_yield": dividend_yield,
+    }.items():
+        if not isinstance(value, (int, float)):
+            raise TypeError(f"{name} must be numeric.")
+        if not isfinite(value):
+            raise ValueError(f"{name} must be finite.")
+
     if spot <= 0:
         raise ValueError("spot must be positive.")
 
@@ -46,14 +59,6 @@ def _validate_inputs(
 
     if option_type not in {"call", "put"}:
         raise ValueError("option_type must be either 'call' or 'put'.")
-
-    for name, value in {
-        "risk_free_rate": risk_free_rate,
-        "dividend_yield": dividend_yield,
-    }.items():
-        if not isinstance(value, (int, float)):
-            raise TypeError(f"{name} must be numeric.")
-
 
 def _d1_d2(
     spot: float,
