@@ -5,6 +5,8 @@ OPTIONS VOLATILITY TRADING AND DYNAMIC HEDGING BACKTESTER
 基于真实标的行情与合成历史期权报价的可复现研究平台，支持期权定价、隐含波动率、
 动态 Delta 对冲、交易成本分析、风险指标与参数敏感性研究。
 
+![Python Tests](https://github.com/burger56487/options-volatility-backtester/actions/workflows/tests.yml/badge.svg)
+
 Overview
 
 This is a Python research project for studying delta-hedged long straddle
@@ -192,13 +194,35 @@ Install project dependencies.
 python -m pip install --upgrade pip
 pip install -r requirements.txt
 
+For tests, model-validation reports and coverage, install the dev extras.
+
+pip install -r requirements-dev.txt
+
 ================================================================
 RUN TESTS
 ================================================================
 
-Run the complete automated test suite.
+Run the complete automated test suite (the fast ``perf`` marker is excluded
+by default because wall-clock benchmarks are machine-dependent).
 
-python -m pytest -q
+python -m pytest -q -m "not perf"
+
+Run a specific group.
+
+python -m pytest -q -m "property or golden or model_validation"
+
+Generate the model validation report.
+
+PYTHONPATH=. python scripts/run_validation_report.py
+
+This writes:
+
+outputs/testing/validation_report.json
+outputs/testing/validation_report.md
+
+Record the C++/Python speedup baseline (opt-in, needs a compiled backend).
+
+PYTHONPATH=. python scripts/run_benchmark_baseline.py
 
 The test suite covers:
 
@@ -214,6 +238,35 @@ Single-trade and rolling backtests.
 Transaction-cost sensitivity.
 Volatility-regime filtering.
 Volatility-regime threshold sensitivity.
+
+================================================================
+TESTS, MODEL VALIDATION AND CI
+================================================================
+
+The project uses a layered test setup: unit and integration tests across
+pricing, volatility-surface, backtest, execution, portfolio, risk and
+market-making modules; Hypothesis property tests for no-arbitrage bounds and
+put-call parity; reproducibility tests for seeded Monte Carlo; golden
+regression tests that re-execute key results on committed data; and a
+deterministic model-validation suite (``src/validation/suite.py``) covering
+convergence, degeneracy (Heston/Merton back to Black-Scholes), SVI
+calibration quality and Kupiec/Christoffersen VaR backtesting.
+
+CI (``.github/workflows/tests.yml``) runs two parallel jobs:
+
+- ``lint``: ruff error-level checks plus mypy on the validation module.
+- ``test``: the full pytest suite with coverage, C++ backend build and tests,
+  and the model-validation report; reports are uploaded as artifacts.
+
+The coverage report is produced as an artifact and is not used as a hard gate.
+Performance benchmarks are opt-in (``-m perf``) because absolute timings are
+not stable on shared CI runners; the C++/Python speedup floor test is kept
+conservative for the same reason.
+
+Scope: this is research-grade quality assurance for correctness and
+reproducibility. It does not include production monitoring or alerting, chaos
+or fault-injection engineering, security penetration testing, large-scale
+load testing, or production deployment/rollback pipelines.
 
 ================================================================
 REPRODUCE THE RESEARCH WORKFLOW
