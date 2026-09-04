@@ -11,8 +11,8 @@
 训练/验证/测试三区段（2021–23 / 2024 / 2025），参数只在训练+验证中选择，
 独立测试集只评估一次并被 `evaluation/test_evaluation_log.json` 锁定；
 跨越 train/validation 边界的交易单独记录保留审计痕迹
-（`boundary_crossing_trades.csv`）。4 组候选阈值 + Bonferroni 校正
-（α=0.0125）。
+（`boundary_crossing_trades.csv`）并从参数选择中排除。5 组候选阈值 +
+Bonferroni 校正（α=0.01）。
 
 ## 4.3 执行与账户
 
