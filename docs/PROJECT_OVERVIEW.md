@@ -23,7 +23,8 @@
    Crank–Nicolson 37ms/误差 0.034；Merton 级数 7.279 vs MC 7.295
    （95%CI 7.209–7.381）；Heston σ_v→0 退化 MC 6.67 vs BS 6.63。
 5. 风险：Delta-Normal/Delta-Gamma/历史/过滤历史/MC VaR + Euler 贡献恒等式
-   + Kupiec/Christoffersen 回测，全部通过单元测试。
+   + 流动性调整 VaR + 预设压力场景 + Kupiec/Christoffersen 回测，
+   全部通过单元测试。
 
 ## 2026-09-04 补充实测（evidence_20260904.json）
 
@@ -31,6 +32,13 @@
 - 收敛：CRR 误差随步数 100→800 从 0.0174 降到 0.0022（≈O(1/N)）；
   Merton MC 10k→200k 路径误差 0.127→0.0010（CI 半宽按 1/√N 收窄）；
   Heston σ_v→0 退化误差 0.037（落在 95% CI 内）。
+- Heston 半解析定价（Fourier 积分）：σ_v→0 时精确回到 Black--Scholes
+  （误差 0）；常规参数与 20 万路径全截断 MC 一致（3 个标准误内）。修复了
+  特征函数缺失的对数分支项，以及 Euler 模拟用同一步更新后 v 导致的
+  ρσ/2 漂移偏差。
+- Heston 合成曲面校准（12 条报价，双初值，SLSQP）：RMSE 2.6e-4，
+  恢复参数 κ=1.00/θ=0.040/σ_v=0.250/ρ=-0.400/v0=0.040（真值
+  κ=1.0/θ=0.04/σ_v=0.25/ρ=-0.4/v0=0.04）。
 - VaR 回测（SPY 日收益，60 日滚动 95% VaR，1194 天）：实际例外 87 vs
   期望 59.7，Kupiec p=0.0007（覆盖被拒绝，符合真实市场厚尾）；
   Christoffersen 独立性 p=0.78（无聚类证据）。

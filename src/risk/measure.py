@@ -177,3 +177,35 @@ def monte_carlo_var(
         confidence_level=confidence_level,
         n_observations=int(n_scenarios),
     )
+
+
+def liquidity_adjusted_var(
+    market_var: float,
+    position_notional: float,
+    relative_half_spread: float,
+    impact_coefficient: float = 0.0,
+    liquidation_fraction: float = 1.0,
+) -> float:
+    """Add a research-grade liquidation cost to a market-risk VaR.
+
+    The adjustment is ``notional * (half_spread + impact * fraction)``,
+    i.e. the cost of exiting ``liquidation_fraction`` of the position into a
+    market with a relative half-spread and a linear market-impact term. This
+    is a deliberately simplified model (no depth curve, no price resilience)
+    and is documented as such in the README.
+    """
+    if market_var < 0.0:
+        raise ValueError("market_var must be non-negative.")
+    if position_notional < 0.0:
+        raise ValueError("position_notional must be non-negative.")
+    if relative_half_spread < 0.0:
+        raise ValueError("relative_half_spread must be non-negative.")
+    if impact_coefficient < 0.0:
+        raise ValueError("impact_coefficient must be non-negative.")
+    if not 0.0 <= liquidation_fraction <= 1.0:
+        raise ValueError("liquidation_fraction must lie in [0, 1].")
+    liquidation_cost = position_notional * (
+        relative_half_spread
+        + impact_coefficient * liquidation_fraction
+    )
+    return market_var + liquidation_cost

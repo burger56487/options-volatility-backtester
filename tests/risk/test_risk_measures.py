@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import pytest
 
 from src.risk.backtest import (
     christoffersen_independence,
@@ -9,6 +10,7 @@ from src.risk.contributions import linear_risk_contributions
 from src.risk.measure import (
     delta_gamma_var,
     historical_var,
+    liquidity_adjusted_var,
 )
 from src.risk.scenarios import preset_scenario_shocks, stress_loss
 
@@ -38,6 +40,56 @@ def test_stress_scenarios():
     exposures = {"equity": 100.0, "volatility": 200.0}
     loss = stress_loss(exposures, preset_scenario_shocks("crash"))
     assert loss["total"] < 0
+
+
+def test_liquidity_adjusted_var_adds_exit_cost():
+    base = liquidity_adjusted_var(
+        market_var=10.0,
+        position_notional=1000.0,
+        relative_half_spread=0.0,
+    )
+    assert base == 10.0
+    with_spread = liquidity_adjusted_var(
+        market_var=10.0,
+        position_notional=1000.0,
+        relative_half_spread=0.01,
+    )
+    with_impact = liquidity_adjusted_var(
+        market_var=10.0,
+        position_notional=1000.0,
+        relative_half_spread=0.01,
+        impact_coefficient=0.005,
+        liquidation_fraction=0.5,
+    )
+    assert with_spread > base
+    assert with_impact > with_spread
+
+
+def test_liquidity_adjusted_var_rejects_invalid_input():
+    with pytest.raises(ValueError):
+        liquidity_adjusted_var(
+            market_var=-1.0,
+            position_notional=100.0,
+            relative_half_spread=0.01,
+        )
+    with pytest.raises(ValueError):
+        liquidity_adjusted_var(
+            market_var=1.0,
+            position_notional=100.0,
+            relative_half_spread=0.01,
+            liquidation_fraction=1.2,
+        )
+
+
+def test_extended_preset_scenarios_are_available():
+    for kind in (
+        "liquidity_widening",
+        "rate_up_100",
+        "correlation_up",
+        "skew_flattening",
+    ):
+        shocks = preset_scenario_shocks(kind)
+        assert isinstance(shocks, dict) and shocks
 
 
 def test_backtest_functions_return_p_values():

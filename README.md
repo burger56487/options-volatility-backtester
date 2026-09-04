@@ -513,7 +513,8 @@ or sell securities, or a recommendation to use any trading strategy.
 
 ## 随机/跳跃/局部波动率 (STOCHASTIC VOL MODELS)
 
-`src/pricing/heston.py`（特征函数 + 全截断 MC）、`src/pricing/merton.py`
+`src/pricing/heston.py`（特征函数、Fourier 半解析定价与全截断 MC）、
+`src/pricing/heston_calibration.py`（多初值有界参数校准）、`src/pricing/merton.py`
 （欧式解析级数 + compound-Poisson MC）与 `src/pricing/local_vol.py`
 （Dupire 局部方差）用于受控研究与模型对比。重要边界：单一真实期权快照不足以
 可靠识别 Heston 等随机波动率参数，跨日校准实验基于带标记的合成曲面；这些模型
@@ -569,8 +570,10 @@ or sell securities, or a recommendation to use any trading strategy.
 
 `src/financing/` 提供现金存/贷利息、股票借券费和简化保证金估算；`src/risk/`
 计算组合 Greeks（per-contract 口径）并做交易前限额检查，支持对整张订单的拒绝
-与二分搜索最大可执行数量。保证金模型属于研究性近似，不代表交易所、清算机构或
-经纪商的实际规则。
+与二分搜索最大可执行数量；提供 Delta-Normal/Delta-Gamma/历史/过滤历史/MC 等
+VaR 度量、流动性调整 VaR（简化退出成本模型）、Kupiec/Christoffersen 回测与
+预设压力场景（股/波动率/偏斜/利率/流动性/相关性）。保证金模型属于研究性近似，
+不代表交易所、清算机构或经纪商的实际规则。
 
 `src/execution/` 提供统一执行引擎：盘口快照（orderbook 或 mid-only 模式）、
 佣金/滑点/市场冲击定价（实际成交价口径，成本只作归因字段）、陈旧报价拒绝、
