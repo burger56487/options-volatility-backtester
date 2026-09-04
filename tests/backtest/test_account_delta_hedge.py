@@ -1,0 +1,27 @@
+import pandas as pd
+
+from src.backtest.account_delta_hedge import (
+    AccountHedgeConfig,
+    run_account_delta_hedge,
+)
+
+
+def _flat_prices(periods: int = 40) -> pd.DataFrame:
+    dates = pd.date_range("2026-01-02", periods=periods, freq="B")
+    return pd.DataFrame({"Close": [100.0] * periods}, index=dates)
+
+
+def test_flat_market_account_hedge_reconciles():
+    data = _flat_prices()
+    result = run_account_delta_hedge(
+        price_data=data,
+        entry_date=data.index[0],
+        config=AccountHedgeConfig(
+            expiry_days=10,
+            volatility=0.25,
+        ),
+    )
+    assert result["reconciliation_passed"] is True
+    assert abs(result["reconciliation_difference"]) < 1e-6
+    assert result["total_pnl"] < 0.0  # premium + costs with no market move
+    assert not result["snapshots"].empty

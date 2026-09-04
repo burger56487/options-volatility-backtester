@@ -6,6 +6,8 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from uuid import uuid4
 
+import pandas as pd
+
 from .cash_ledger import (
     CashFlowType,
     CashLedgerEntry,
@@ -208,7 +210,8 @@ class Account:
             if (
                 instrument.instrument_type != InstrumentType.OPTION
                 or instrument.expiry is None
-                or instrument.expiry > as_of_date
+                or pd.Timestamp(instrument.expiry)
+                > pd.Timestamp(as_of_date)
                 or instrument.strike is None
             ):
                 continue
@@ -229,5 +232,12 @@ class Account:
                     CashFlowType.OPTION_SETTLEMENT,
                     f"settlement {instrument.key()}",
                 )
+            # Realise the premium P&L difference between intrinsic value and
+            # average cost so the PnL bridge closes.
+            position.realised_pnl += (
+                position.quantity
+                * position.multiplier
+                * (intrinsic - position.average_cost)
+            )
             self.positions[key].quantity = 0.0
             self.positions[key].average_cost = 0.0
