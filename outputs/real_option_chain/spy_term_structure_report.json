@@ -1,0 +1,13 @@
+{
+  "shape": "humped",
+  "front_shape": "contango",
+  "back_shape": "backwardation",
+  "slope": 0.013606704975687,
+  "annualized_slope": 0.7094924737322514,
+  "relative_slope": 0.1579140203441478,
+  "calendar_violations": 0,
+  "noise_negative_count": 0,
+  "num_valid_expiries": 6,
+  "warnings": [],
+  "violations": []
+}
