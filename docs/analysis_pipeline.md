@@ -11,7 +11,10 @@ assessment) on one graded quote snapshot:
 6. ATM term structure + forward vol + calendar screen;
 7. robust SVI calibration + Gatheral `g(k)` + cross-expiry calendar screen;
 8. chain Greeks (r=4%, q=1.2% convention);
-9. liquidity state (median relative spread, reliability, quality share);
+9. liquidity state on the *full* snapshot: absolute/relative spread,
+   IV bid/ask band width (solved when missing), multi-factor reliability
+   score (relative spread / open interest / volume / IV spread), breakdowns
+   by moneyness and expiry, plus quality-good share;
 10. structured report + figures.
 
 Data-flow discipline: the full graded snapshot feeds cleaning/liquidity;
